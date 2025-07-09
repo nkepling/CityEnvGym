@@ -1,0 +1,39 @@
+[build-system]
+requires = ["scikit-build-core","pybind11","setuptools"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "CityEnvGym"
+description = "A great package."
+readme = "README.md"
+version = "0.1.0"
+authors = [
+  { name = "Nathaniel Keplinger", email = "nathankep@gmail.com" },
+]
+maintainers = [
+  { name = "Nathaniel Keplinger", email = "nathankep@gmail.com" },
+]
+requires-python = ">=3.9"
+
+dependencies = [
+  "typing_extensions",
+  "numpy",
+  "gymnasium",
+  "Pillow",
+  "matplotlib",
+]
+
+[tool.scikit-build-core.sdist]
+include = ["src/CityEnvGym/*.png"] 
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+

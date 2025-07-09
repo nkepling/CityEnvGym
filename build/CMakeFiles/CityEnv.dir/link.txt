@@ -1,0 +1,2 @@
+/usr/bin/ar qc libCityEnv.a CMakeFiles/CityEnv.dir/src/CityEnv.cpp.o
+/usr/bin/ranlib libCityEnv.a

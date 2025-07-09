@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -bundle -Wl,-headerpad_max_install_names -Xlinker -undefined -Xlinker dynamic_lookup -flto -o _CityEnvGym.cpython-310-darwin.so CMakeFiles/_CityEnvGym.dir/src/binder.cpp.o  libCityEnv.a
