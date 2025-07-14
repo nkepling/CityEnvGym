@@ -10,6 +10,14 @@ namespace city_env {
     // vx,vy,angular_acceleration
     using Action = Eigen::Vector3f;
 
+    struct Sensor {
+        Eigen::Vector2f position; // Position of the sensor in world coordinates
+        float radius = 10.0f;      // Radius of the sensor's coverage area
+
+        Sensor(float x, float y, float r) : position(x, y), radius(r) {}
+        Sensor() : position(0, 0), radius(10.0f) {} // Default constructor
+    };
+
     struct Position {
         Eigen::Vector2f vector; // Represents x, y
         float yaw = 0.0f;       // Heading angle in radians
@@ -39,6 +47,7 @@ namespace city_env {
       struct Target {
         Position position;
         float speed = 10.0f; // How fast the target moves along its path
+        int num_steps = 100; // Number of steps to precompute for the target's path
 
         // Path-following members
         std::vector<Eigen::Vector2f> path;
@@ -67,8 +76,9 @@ namespace city_env {
             float fov_distance,
             Drone drone,
             Target target,
-            float resolution = 1.0f, // NEW
-            const Eigen::Vector2f& origin = Eigen::Vector2f(-500.0f, -500.0f) // NEW
+            float resolution = 1.0f,
+            const Eigen::Vector2f& origin = Eigen::Vector2f(-500.0f, -500.0f),
+            const std::vector<city_env::Sensor>& sensors = {}
         );
         
         State reset();
@@ -80,6 +90,7 @@ namespace city_env {
         bool isLineOfSightClear(const Eigen::Vector2i& start, const Eigen::Vector2i& end) const;    
         // checkFov now checks the internal drone against the internal target
         bool checkFov() const;
+        bool checkSensors() const;
         Eigen::Vector2f mapToWorld(const Eigen::Vector2i& mapCoords) const;
         Eigen::Vector2i worldToMap(const Eigen::Vector2f& worldCoords) const;
 
@@ -97,8 +108,8 @@ namespace city_env {
         float time_elapsed;
         float resolution;
         Eigen::Vector2f origin;
+        std::vector<city_env::Sensor> _sensors;
 
-        // Helper methods renamed and updated for a single drone/target
         void update_drone(const Action& action);
         void update_target();
         void check_collision();
@@ -107,9 +118,6 @@ namespace city_env {
         bool is_in_bounds(const Eigen::Vector2i& grid_pos) const;
         mutable std::mt19937 random_generator;
         std::uniform_real_distribution<float> angle_distribution;
-
-        // NEW: Helper function to set a new random direction for the target
-
-        void precompute_target_path(int num_steps = 100);
+        void precompute_target_path();
     };
 } // namespace city_env

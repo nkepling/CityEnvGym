@@ -9,9 +9,17 @@ namespace py = pybind11;
 PYBIND11_MODULE(_CityEnvGym, m) {
     m.doc() = "Python bindings for the C++ City Environment Simulator (Single Drone/Target)";
 
-    //================================================
-    // 1. Bind Data Structures
-    //================================================
+    py::class_<city_env::Sensor>(m, "Sensor")
+        .def(py::init<float, float, float>(), py::arg("x"), py::arg("y"), py::arg("radius"))
+        .def(py::init<>())
+        .def_readwrite("position", &city_env::Sensor::position)
+        .def_readwrite("radius", &city_env::Sensor::radius)
+        // Add a __repr__ for easier debugging in Python
+        .def("__repr__", [](const city_env::Sensor &s) {
+            return "<Sensor position=" + std::to_string(s.position.x()) +
+                   ", " + std::to_string(s.position.y()) +
+                   ", radius=" + std::to_string(s.radius) + ">";
+        });
 
     py::class_<city_env::Position>(m, "Position")
         .def(py::init<>())
@@ -49,6 +57,7 @@ PYBIND11_MODULE(_CityEnvGym, m) {
         .def(py::init<>())
         .def_readwrite("position", &city_env::Target::position)
         .def_readwrite("speed", &city_env::Target::speed)
+        .def_readwrite("num_steps", &city_env::Target::num_steps)
         .def_readwrite("path", &city_env::Target::path)
         .def_readwrite("current_path_index", &city_env::Target::current_path_index)
         .def_readwrite("radius", &city_env::Target::radius);
@@ -69,25 +78,31 @@ PYBIND11_MODULE(_CityEnvGym, m) {
     py::class_<city_env::CityEnv>(m, "CityEnv")
         // UPDATED: The constructor now takes a single drone and target
         .def(py::init<
-                const std::vector<std::vector<bool>>&,
-                float,
-                float,
-                float,
-                float,
-                float,
-                city_env::Drone,
-                city_env::Target
+                const std::vector<std::vector<bool>>&,      // 1. obstacle_map
+                float,                                       // 2. world_width
+                float,                                       // 3. world_height
+                float,                                       // 4. time_step
+                float,                                       // 5. fov_angle
+                float,                                       // 6. fov_distance
+                city_env::Drone,                             // 7. drone
+                city_env::Target,                            // 8. target
+                float,                                       // 9. resolution
+                const Eigen::Vector2f&,                      // 10. origin
+                const std::vector<city_env::Sensor>&         // 11. sensors (Use city_env::Sensor)
              >(),
-             py::arg("obstacle_map"),
-             py::arg("world_width"),
-             py::arg("world_height"),
-             py::arg("time_step"),
-             py::arg("fov_angle"),
-             py::arg("fov_distance"),
-             py::arg("drone"),
-             py::arg("target"),
-             "The main constructor for the CityEnv class.")
+             py::arg("obstacle_map"),       // 1
+             py::arg("world_width"),        // 2
+             py::arg("world_height"),       // 3
+             py::arg("time_step"),          // 4
+             py::arg("fov_angle"),          // 5
+             py::arg("fov_distance"),       // 6
+             py::arg("drone"),              // 7
+             py::arg("target"),             // 8
+             py::arg("resolution") = 1.0f,  // 9 (with default)
+             py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
+             py::arg("sensors") = std::vector<city_env::Sensor>() // 11 (with default)
 
+        )
         .def("reset", &city_env::CityEnv::reset,
              "Resets the environment to its initial state and returns the new state.")
 
