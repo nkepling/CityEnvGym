@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include <random> 
 
+
 namespace city_env {
 
     // vx,vy,angular_acceleration
@@ -33,6 +34,8 @@ namespace city_env {
             float steering_gain = 2.0f;         // Proportional gain for angular velocity
             float linear_drag_coeff = 0.5f;     // Coefficient for linear drag
             float angular_drag_coeff = 0.1f;    // Coefficient for rotational drag
+            float max_speed = 25.0f;             // Maximum linear speed
+            float max_angular_velocity = M_PI / 2.0f; // Maximum angular velocity
         };
 
         int id;
@@ -44,22 +47,31 @@ namespace city_env {
         Drone() : linear_velocity(0, 0) {} // Default constructor
     };
 
-      struct Target {
-        Position position;
-        float speed = 10.0f; // How fast the target moves along its path
-        int num_steps = 100; // Number of steps to precompute for the target's path
+    struct Target {
+            Position position;
+            float speed; // This might become a desired speed
+            std::vector<Eigen::Vector2f> path;
+            int num_steps; // Number of steps to take in the path
+            size_t current_path_index;
+            float angular_velocity; // Add angular velocity for smooth turns
+            Eigen::Vector2f linear_velocity; // Add linear velocity for realistic motion
+            float radius = 5.0f; // Radius for the target's detection area
 
-        // Path-following members
-        std::vector<Eigen::Vector2f> path;
-        float radius = 5.0f; // Radius of the target for collision detection
-        int current_path_index = 0;
-    };
-
-
-    // State now holds a single drone and target
+            struct Physics { // New: Add physics properties for the target
+                float mass = 5.0f;
+                float moment_of_inertia = 0.5f;
+                float linear_drag_coeff = 0.8f;
+                float angular_drag_coeff = 0.3f;
+                float propulsion_gain = 4.0f;  // Gain to reach desired linear velocity
+                float steering_gain = 3.0f;    // Gain to reach desired angular velocity
+                float max_speed = 10.0f;        // Maximum linear speed
+                float max_angular_velocity = M_PI / 2.0f; // Maximum angular velocity (turn rate)
+            } physics;
+        };
     struct State {
         Drone drone;
         Target target;
+        std::vector<Eigen::Vector2f> future_target_positions; // Future positions of the target
         float time_elapsed;
         float reward = 0.0f; // Reward can be computed based on the drone's state
     };

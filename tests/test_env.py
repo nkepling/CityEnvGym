@@ -7,16 +7,23 @@ import matplotlib.pyplot as plt
 # Assuming CityEnvironment is the main class exposed by the package
 from CityEnvGym.CityEnvGym import CityEnvironment
 import CityEnvGym
+import time
 
 @pytest.fixture
 def env():
     """Pytest fixture to create a CityEnv instance for testing."""
     # This correctly instantiates the environment for each test
-    obstacle_map = [[False for _ in range(int(200))] for _ in range(int(200))]
+    obstacle_map = [[False for _ in range(int(100))] for _ in range(int(100))]
+
+    # obstacle_map[5][5] = True  # Example obstacle
+    # obstacle_map[7][7] = True  # Another example obstacle
+
+    target_physics = {"mass":5}
+    drone_physics = {"mass":5}
 
     sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
 
-    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",obstacle_map=obstacle_map,sensors=sensors,num_evader_steps=1000,max_episode_steps=10000)
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",obstacle_map=obstacle_map,sensors=sensors,num_evader_steps=100,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics)
     return env
 
 def test_env_initialization(env):
@@ -57,6 +64,39 @@ def test_env_step(env):
     # Check if the observation is of correct type and shape
     assert isinstance(obs, dict), "Observation should be a dictionary"
 
+    future_evader_positions = obs["future_evader_positions"]
+    assert future_evader_positions.shape == (2, env.unwrapped.num_evader_steps), f"Future evader positions should have shape (2, num_evader_steps), got {future_evader_positions.shape}"
+
+    assert rew is not None, "Reward should not be None"
+
+
+def test_episode_time_limit(env):
+    """
+    Test if the environment correctly handles the episode time limit.
+    """
+
+    action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
+    times = []
+    
+    for i in range(25):
+        env.reset()
+        
+        done = False
+        truncated = False
+        start_time = time.time()
+        while not (done or truncated):
+            obs, rew, done, truncated, info = env.step(action)
+        end_time = time.time()
+
+        elapsed_time = end_time - start_time
+        times.append(elapsed_time)
+
+    print(f"Elapsed time: {np.mean(times):.2f} seconds")
+    assert done or truncated, "Episode should be done when time limit is reached"
+
+
+
+
 def test_render(env):
     """
     Test the render method.
@@ -69,10 +109,15 @@ def test_render(env):
     while not (done or truncated):
         obs, rew, done, truncated, info = env.step(action)    
 
-
         env.render()
 
     assert True, "Render method should run without error"
+
+
+
+
+
+
 
 
 

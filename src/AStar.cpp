@@ -41,9 +41,9 @@ struct Vec2iHash {
     }
 };
 
-// Heuristic function (Manhattan distance)
+// Heuristic function (Euclidean distance)
 int heuristic(const Vec2i& a, const Vec2i& b) {
-    return std::abs(a.x() - b.x()) + std::abs(a.y() - b.y());
+    return std::sqrt(std::pow(a.x() - b.x(), 2) + std::pow(a.y() - b.y(), 2));
 }
 
 // Reconstructs the final path by tracing parent pointers from the goal

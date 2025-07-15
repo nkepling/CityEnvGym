@@ -42,7 +42,9 @@ PYBIND11_MODULE(_CityEnvGym, m) {
         .def_readwrite("propulsion_gain", &city_env::Drone::Physics::propulsion_gain)
         .def_readwrite("steering_gain", &city_env::Drone::Physics::steering_gain)
         .def_readwrite("linear_drag_coeff", &city_env::Drone::Physics::linear_drag_coeff)
-        .def_readwrite("angular_drag_coeff", &city_env::Drone::Physics::angular_drag_coeff);
+        .def_readwrite("angular_drag_coeff", &city_env::Drone::Physics::angular_drag_coeff)
+        .def_readwrite("max_speed", &city_env::Drone::Physics::max_speed)
+        .def_readwrite("max_angular_velocity", &city_env::Drone::Physics::max_angular_velocity);
 
     py::class_<city_env::Drone>(m, "Drone")
         .def(py::init<>())
@@ -59,14 +61,28 @@ PYBIND11_MODULE(_CityEnvGym, m) {
         .def_readwrite("speed", &city_env::Target::speed)
         .def_readwrite("num_steps", &city_env::Target::num_steps)
         .def_readwrite("path", &city_env::Target::path)
+        .def_readwrite("velocity", &city_env::Target::linear_velocity)
         .def_readwrite("current_path_index", &city_env::Target::current_path_index)
-        .def_readwrite("radius", &city_env::Target::radius);
+        .def_readwrite("radius", &city_env::Target::radius)
+        .def_readwrite("physics", &city_env::Target::physics);
+
+    py::class_<city_env::Target::Physics>(m, "TargetPhysics")
+        .def(py::init<>())
+        .def_readwrite("mass", &city_env::Target::Physics::mass)
+        .def_readwrite("moment_of_inertia", &city_env::Target::Physics::moment_of_inertia)
+        .def_readwrite("propulsion_gain", &city_env::Target::Physics::propulsion_gain)
+        .def_readwrite("steering_gain", &city_env::Target::Physics::steering_gain)
+        .def_readwrite("linear_drag_coeff", &city_env::Target::Physics::linear_drag_coeff)
+        .def_readwrite("angular_drag_coeff", &city_env::Target::Physics::angular_drag_coeff)
+        .def_readwrite("max_speed", &city_env::Target::Physics::max_speed)
+        .def_readwrite("max_angular_velocity", &city_env::Target::Physics::max_angular_velocity);
 
     // UPDATED: State now holds a single drone and target
     py::class_<city_env::State>(m, "State")
         .def(py::init<>())
         .def_readwrite("drone", &city_env::State::drone)
         .def_readwrite("target", &city_env::State::target)
+        .def_readwrite("future_target_positions", &city_env::State::future_target_positions)
         .def_readwrite("time_elapsed", &city_env::State::time_elapsed)
         .def_readwrite("reward", &city_env::State::reward);
 

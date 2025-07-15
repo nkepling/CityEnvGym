@@ -7,7 +7,7 @@ from PIL import Image
 import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-from .utils import _load_map_from_image
+from .utils import _load_map_from_image, _update_physics
 
 
 class CityEnvironment(gym.Env):
@@ -28,11 +28,21 @@ class CityEnvironment(gym.Env):
         self.fov_angle = kwargs.get('fov_angle', 90.0)
         self.fov_distance = kwargs.get('fov_distance', 100.0)
         obstacle_map = kwargs.get('obstacle_map', None)
-        self.sensors = kwargs.get('sensors', [])
+        self.sensors = kwargs.get('sensors', [])        
+        self.target_physics = kwargs.get('target_physics', None)
+        self.drone_physics = kwargs.get('drone_physics', None)
 
+        # init drone and target
 
         drone = Drone()
         target = Target()
+        
+        if self.drone_physics is not None:
+            _update_physics(drone, self.drone_physics)
+        
+        if self.target_physics is not None:
+            _update_physics(target, self.target_physics)
+
         target.num_steps = self.num_evader_steps  # Set the number of steps for the target's path
 
         self.fig = None
@@ -49,8 +59,6 @@ class CityEnvironment(gym.Env):
 
         if self.sensors:
             self.sensors = [Sensor(*sensor) for sensor in self.sensors]
-
-
 
         # Convert the obstacle map to a numpy array for rendering
         self.obstacle_map_for_render = np.array(obstacle_map, dtype=np.uint8)
@@ -70,24 +78,34 @@ class CityEnvironment(gym.Env):
             origin = (-world_width / 2, -world_height / 2),  # Center the origin
         )
 
+        #BUG THE observation space bounds are hardcoded to the world size
         # x,y,theta,vx,vy
         self.observation_space = spaces.Dict({
             "drone": spaces.Box(
-                low=np.array([-500, -500, 0, -15, -15], dtype=np.float32), 
-                high=np.array([500, 500, 2*np.pi, 15, 15], dtype=np.float32), 
+                low=np.array([-self.world_width/2, -self.world_height/2, 0, -15, -15], dtype=np.float32), 
+                high=np.array([self.world_width/2, self.world_height/2, 2*np.pi, 15, 15], dtype=np.float32), 
                 shape=(5,), 
                 dtype=np.float32
             ),
             "target": spaces.Box(
-                low=np.array([-500, -500, 0,], dtype=np.float32), 
-                high=np.array([500, 500, 2*np.pi], dtype=np.float32), 
+                low=np.array([-self.world_width/2, -self.world_height/2, 0], dtype=np.float32), 
+                high=np.array([self.world_width/2, self.world_height/2, 2*np.pi], dtype=np.float32), 
                 shape=(3,), 
                 dtype=np.float32
             ),
+              "future_evader_positions": spaces.Box(
+                # Create low and high bounds with the correct shape (2, num_evader_steps)
+                low=np.tile(np.array([-self.world_width/2, -self.world_height/2], dtype=np.float32)[:, np.newaxis], (1, self.num_evader_steps)),
+                high=np.tile(np.array([self.world_width/2, self.world_height/2], dtype=np.float32)[:, np.newaxis], (1, self.num_evader_steps)),
+                shape=(2, self.num_evader_steps),
+                dtype=np.float32
+            ),
+
             "time_elapsed": spaces.Box(low=0.0, high=np.inf, shape=(1,), dtype=np.float32)
         })
 
         # Action space for one drone: [target_vx, target_vy, target_yaw_rate]
+        # should maybe normlalize the action space to be between -1 and 1
         self.action_space = spaces.Box(
             low=np.array([-15.0, -15.0, -np.pi]), 
             high=np.array([15.0, 15.0, np.pi]), 
@@ -116,12 +134,16 @@ class CityEnvironment(gym.Env):
             drone_vel[1], 
         ], dtype=np.float32)
 
+
+        future_evader_positions = np.array(state.future_target_positions).reshape(-1, 2).T  # Reshape to (3, num_steps) for x, y, yaw
+        
         obs = {"drone": drone_state,
                "target": np.array([
                    state.target.position.x(), 
                    state.target.position.y(), 
                    state.target.position.yaw,
                ], dtype=np.float32),
+               "future_evader_positions": future_evader_positions,
                "time_elapsed": np.array([state.time_elapsed], dtype=np.float32)
            }
         
@@ -146,6 +168,7 @@ class CityEnvironment(gym.Env):
         
         # C++ reset() returns a State object
         state = self.city_env.reset()
+
         
         # CORRECTED: Access the single 'state.drone' and 'state.target' directly
         obs = {
@@ -161,7 +184,8 @@ class CityEnvironment(gym.Env):
                 state.target.position.y(), 
                 state.target.position.yaw,
             ], dtype=np.float32),
-            "time_elapsed": np.array([state.time_elapsed], dtype=np.float32)
+            "time_elapsed": np.array([state.time_elapsed], dtype=np.float32),
+            "future_evader_positions": np.array(state.future_target_positions).reshape(-1, 2).T  # Reshape to (3, num_steps) for x, y, yaw
         }
         return obs, {}
 
@@ -176,6 +200,8 @@ class CityEnvironment(gym.Env):
             drone_pos = state.drone.position
             target_pos = state.target.position
 
+            target_future_positions = state.future_target_positions
+
             # drone_grid_pos = self.city_env.world_to_map(drone_pos.vector)
             # target_grid_pos = self.city_env.world_to_map(target_pos.vector)
 
@@ -186,6 +212,10 @@ class CityEnvironment(gym.Env):
                 self.ax.imshow(self.obstacle_map_for_render, cmap='gray_r', origin='lower', extent=[-self.world_width/2, self.world_width/2, -self.world_height/2, self.world_height/2])
                 self.drone_plot = self.ax.scatter([], [], s=100, marker='>', c='blue', label='Drone')
                 self.target_plot = self.ax.scatter([], [], s=100, marker='x', c='red', label='Target')
+                self.drone_vel_plot = self.ax.quiver([], [], [], [], color='blue', alpha=0.8, scale=100, width=0.005)
+                self.target_vel_plot = self.ax.quiver([], [], [], [], color='red', alpha=0.8, scale=100, width=0.005)
+            
+                self.future_target_plot, = self.ax.plot([], [], 'r--', label='Future Target Path', alpha=0.6) # Note the comma
                 self.ax.legend()
                 self.ax.set_xlim(-self.world_width/2, self.world_width/2)
                 self.ax.set_ylim(-self.world_height/2, self.world_height/2)
@@ -198,7 +228,30 @@ class CityEnvironment(gym.Env):
             self.drone_plot.set_offsets([drone_pos.x(), drone_pos.y()])
             self.target_plot.set_offsets([target_pos.x(), target_pos.y()])
 
+
+            if target_future_positions:
+        # Prepend the target's current position to the start of the path line
+                full_path = np.vstack([target_pos.vector, np.array(target_future_positions)])
+                path_x, path_y = full_path.T
+                self.future_target_plot.set_data(path_x, path_y)
+            else:
+                self.future_target_plot.set_data([], [])
+
+             # Change 4: Update the velocity quiver plots
+
+            drone_vel = state.drone.velocity
+
+            self.drone_vel_plot.set_offsets([drone_pos.x(), drone_pos.y()])
+            self.drone_vel_plot.set_UVC(drone_vel[0], drone_vel[1])
+
+            target_vel = state.target.velocity
+            self.target_vel_plot.set_offsets([target_pos.x(), target_pos.y()])
+            self.target_vel_plot.set_UVC(target_vel[0], target_vel[1])
+
+
             self.ax.set_title(f"City Environment | Sim Time: {state.time_elapsed:.2f}s | Drone Pos : ({drone_pos.x():.2f}, {drone_pos.y():.2f}) | Target Pos: ({target_pos.x():.2f}, {target_pos.y():.2f})")
+
+
             plt.pause(1e-9) # A very small, non-zero pause
 
     def close(self):

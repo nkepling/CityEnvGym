@@ -2,7 +2,7 @@
 #include "iostream"
 #include <cmath> // Required for std::fmod, std::cos, std::sin
 #include "AStar.hpp"
-
+#include <algorithm>
 
 namespace city_env {
 
@@ -37,7 +37,7 @@ namespace city_env {
       random_generator(std::random_device()()), // Initialize random generator
       angle_distribution(0.0f, 2.0f * M_PI)
     {
-        std::cout << "Initializing CityEnv with 1 drone and 1 target." << std::endl;
+
         this->drone.id = 0; // Set a default ID for the drone
         this->target.position.vector = Eigen::Vector2f(0.0f, 0.0f);
         precompute_target_path();
@@ -58,7 +58,11 @@ namespace city_env {
         time_elapsed = 0.0f;
 
         target.position.vector.setZero();
-        precompute_target_path();
+
+        while (target.path.size() < target.num_steps + 1) {
+            precompute_target_path();
+        }
+
         return get_state();
     }
 
@@ -81,6 +85,16 @@ namespace city_env {
         state.drone = this->drone;
         state.target = this->target; // Include the target in the state
         state.time_elapsed = this->time_elapsed;
+
+        int current_target_index = target.current_path_index;
+        int future_path_final_index = target.current_path_index + target.num_steps;
+
+        std::vector<Eigen::Vector2f> future_positions;
+        for (int i = current_target_index + 1; i <= future_path_final_index && i < target.path.size(); ++i) {
+            future_positions.push_back(target.path[i]);
+        }
+
+        state.future_target_positions = future_positions; // Include future positions of the target
         state.reward = compute_reward(); // Compute the reward based on the current state
         return state;
     }
@@ -131,24 +145,43 @@ namespace city_env {
         drone.linear_velocity += linear_acceleration * this->time_step;
         drone.position.vector += drone.linear_velocity * this->time_step;
 
+        // Keep the drone within the world boundaries
+        // Keep the drone within the world boundaries using std::min and std::max
+        drone.position.vector.x() = std::max(-world_width / 2, std::min(drone.position.vector.x(), world_width / 2));
+        drone.position.vector.y() = std::max(-world_height / 2, std::min(drone.position.vector.y(), world_height / 2));
+
+        // clamp max speed and angular velocity
+        if (drone.linear_velocity.norm() > physics.max_speed) {
+            drone.linear_velocity = drone.linear_velocity.normalized() * physics.max_speed;
+        }
+
+        if (drone.angular_velocity > physics.max_angular_velocity) {
+            drone.angular_velocity = physics.max_angular_velocity;
+        }
+        if (drone.angular_velocity < -physics.max_angular_velocity) {
+            drone.angular_velocity = -physics.max_angular_velocity;
+        }
     }
 
-    /**
-     * @brief Precomputes a "patrolling" path of a specific total distance.
-     *
-     * This function generates a path where the target moves straight in a
-     * random direction until it's about to hit a boundary or an obstacle.
-     * It then reverses direction and continues moving straight.
-     *
-     * @param total_distance The total distance the target should travel in the generated path.
-     */
+
     void CityEnv::precompute_target_path() {
-        target.path.clear();
-        target.current_path_index = 0;
+        std::vector<Eigen::Vector2f> new_full_path;
+        Eigen::Vector2f last_copied_world_pos;
 
-        Eigen::Vector2i start_node = worldToMap(target.position.vector);
+        last_copied_world_pos = target.position.vector;
 
-        // --- 1. Find a random, valid, AND DIFFERENT goal position on the grid ---
+        if (target.path.size() > target.current_path_index + 1) {
+            for (size_t i = target.current_path_index + 1; i < target.path.size(); ++i) {
+                new_full_path.push_back(target.path[i]);
+                
+            }
+            if (!new_full_path.empty()) {
+                last_copied_world_pos = new_full_path.back();
+            }
+        }
+
+
+        Eigen::Vector2i start_node = worldToMap(last_copied_world_pos);
         Eigen::Vector2i goal_node;
         std::uniform_int_distribution<int> x_dist(0, obstacle_map[0].size() - 1);
         std::uniform_int_distribution<int> y_dist(0, obstacle_map.size() - 1);
@@ -158,41 +191,90 @@ namespace city_env {
             goal_node.y() = y_dist(random_generator);
         } while (obstacle_map[goal_node.y()][goal_node.x()] || goal_node == start_node);
 
-        // --- 2. Use A* to find a path from start_node to goal_node ---
-
         std::vector<Eigen::Vector2i> path = AStar::findPath(
             start_node,
             goal_node,
             obstacle_map,
-            true // Allow diagonal movement
+            true 
         );
 
         for (const Eigen::Vector2i& node : path) {
-            // Convert each grid node to world coordinates and add to the path
             target.path.push_back(mapToWorld(node));
         }
 
-        std::cout << "Precomputed target path with " << target.path.size() << " waypoints." << std::endl;
+        //std::cout << "Precomputed target path with " << target.path.size() << " waypoints." << std::endl;
     }
 
     void CityEnv::update_target() {
-        if (target.path.empty() || target.current_path_index >= target.path.size() - 1) {
-            precompute_target_path();
-            if (target.path.size() < 2) return;
-        }
-        const Eigen::Vector2f& next_waypoint = target.path[target.current_path_index + 1];
-        Eigen::Vector2f direction_to_waypoint = (next_waypoint - target.position.vector).normalized();
-        float distance_to_move = target.speed * time_step;
 
-        float distance_to_waypoint = (next_waypoint - target.position.vector).norm();
-        if (distance_to_move >= distance_to_waypoint) {
-            target.position.vector = next_waypoint; 
-            target.current_path_index++;
-        } else {
-            target.position.vector += direction_to_waypoint * distance_to_move;
+        float points_left = target.path.size() - target.current_path_index;
+        if (target.path.empty() || target.current_path_index >= target.path.size() - 1 || points_left < target.num_steps) {
+
+            while (target.path.size() < target.current_path_index + target.num_steps + 1) {
+                precompute_target_path();
+            }
+            if (target.path.size() < 2) return;
+            
         }
-        target.position.yaw = std::atan2(direction_to_waypoint.y(), direction_to_waypoint.x());
+
+        const float waypoint_proximity_threshold = 3.0f; 
+        Eigen::Vector2f next_waypoint = target.path[target.current_path_index + 1];
+        
+        float distance_to_waypoint = (next_waypoint - target.position.vector).norm();
+        if (distance_to_waypoint < waypoint_proximity_threshold && target.current_path_index < target.path.size() - 2) {
+            target.current_path_index++;
+            next_waypoint = target.path[target.current_path_index + 1]; // Update to the new waypoint
+        }
+
+        // 3. Calculate desired velocities based on the next waypoint
+        const auto& physics = target.physics;
+        Eigen::Vector2f direction_to_waypoint = (next_waypoint - target.position.vector).normalized();
+
+        // --- Angular Motion ---
+        float desired_yaw = std::atan2(direction_to_waypoint.y(), direction_to_waypoint.x());
+        float yaw_error = desired_yaw - target.position.yaw;
+        
+        // Normalize the yaw error to be within [-PI, PI]
+        while (yaw_error > M_PI) yaw_error -= 2.0f * M_PI;
+        while (yaw_error < -M_PI) yaw_error += 2.0f * M_PI;
+
+        // Use std::max and std::min instead of std::clamp for wider compatibility
+        float commanded_angular_velocity = std::max(-physics.max_angular_velocity, std::min(yaw_error * 5.0f, physics.max_angular_velocity));
+        
+        float steering_torque = physics.steering_gain * (commanded_angular_velocity - target.angular_velocity);
+        float angular_drag_torque = -physics.angular_drag_coeff * target.angular_velocity;
+        float net_torque = steering_torque + angular_drag_torque;
+        float angular_acceleration = net_torque / physics.moment_of_inertia;
+        
+        target.angular_velocity += angular_acceleration * time_step;
+        target.position.yaw += target.angular_velocity * time_step;
+
+        // Normalize yaw to be within [-PI, PI]
+        target.position.yaw = std::fmod(target.position.yaw + M_PI, 2.0 * M_PI);
+        if (target.position.yaw < 0.0) {
+            target.position.yaw += 2.0 * M_PI;
+        }
+        target.position.yaw -= M_PI;
+
+        // --- Linear Motion ---
+        Eigen::Vector2f commanded_linear_velocity = direction_to_waypoint * physics.max_speed;
+        
+        Eigen::Vector2f propulsion_force = physics.propulsion_gain * (commanded_linear_velocity - target.linear_velocity);
+        Eigen::Vector2f drag_force = -physics.linear_drag_coeff * target.linear_velocity;
+        Eigen::Vector2f net_force = propulsion_force + drag_force;
+        Eigen::Vector2f linear_acceleration = net_force / physics.mass;
+
+        target.linear_velocity += linear_acceleration * time_step;
+
+        // Clamp velocity to max speed
+        if (target.linear_velocity.norm() > physics.max_speed) {
+            target.linear_velocity = target.linear_velocity.normalized() * physics.max_speed;
+        }
+
+        target.position.vector += target.linear_velocity * time_step;
     }
+
+
 
 
     bool CityEnv::is_in_bounds(const Eigen::Vector2i& grid_pos) const {
@@ -221,12 +303,11 @@ namespace city_env {
         Eigen::Vector2i grid_pos = worldToMap(drone.position.vector);
 
         if (!is_in_bounds(grid_pos)) {
-            std::cout << "Drone " << drone.id << " is out of bounds!" << std::endl;
             return;
         }
 
         if (obstacle_map[grid_pos.y()][grid_pos.x()]) {
-            std::cout << "Drone " << drone.id << " collided with an obstacle!" << std::endl;
+            return;
         }
     }
 

@@ -19,4 +19,13 @@ def _load_map_from_image(filepath: str) -> list[list[bool]]:
         return []
 
 
+def _update_physics(drone, properties):
+    """Updates the drone's physics based on the action taken."""
+
+    for prop, value in properties.items():
+        if hasattr(drone.physics, prop):
+            setattr(drone.physics, prop, value)
+        else:
+            print(f"Warning: Drone does not have property '{prop}' to update.")
+
 
