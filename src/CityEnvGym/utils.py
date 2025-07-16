@@ -29,3 +29,27 @@ def _update_physics(drone, properties):
             print(f"Warning: Drone does not have property '{prop}' to update.")
 
 
+
+def coordinate_transformation(evader_state, pursuer_state):
+    """World coords to pursuer coords transformation.
+    """
+    evader_pos = evader_state[:2]  
+    evader_heading_world = evader_state[2] 
+
+    pursuer_pos = pursuer_state[:2]  
+    pursuer_heading_world = pursuer_state[2]  
+
+    relative_evader_pos_world = evader_pos - pursuer_pos
+
+    cos_neg_theta = np.cos(-pursuer_heading_world)
+    sin_neg_theta = np.sin(-pursuer_heading_world)
+
+    rotation_matrix = np.array([
+        [cos_neg_theta, -sin_neg_theta],
+        [sin_neg_theta, cos_neg_theta]
+    ])
+
+    evader_pos_in_pursuer_frame = rotation_matrix @ relative_evader_pos_world
+    evader_heading_in_pursuer_frame = evader_heading_world - pursuer_heading_world
+    evader_heading_in_pursuer_frame = np.arctan2(np.sin(evader_heading_in_pursuer_frame), np.cos(evader_heading_in_pursuer_frame))
+    return np.concatenate([evader_pos_in_pursuer_frame, [evader_heading_in_pursuer_frame]])

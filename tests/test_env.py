@@ -95,6 +95,28 @@ def test_episode_time_limit(env):
     assert done or truncated, "Episode should be done when time limit is reached"
 
 
+def test_observation_wrapper(env):
+    """
+    Test the EgoCentricObservationWrapper.
+    """
+    from CityEnvGym.wrappers import EgoCentricObservationWrapper
+
+    wrapped_env = EgoCentricObservationWrapper(env)
+    
+    obs, info = wrapped_env.reset()
+    
+    assert isinstance(obs, dict), "Wrapped observation should be a dictionary"
+    
+    # Check if drone and target positions are transformed correctly
+    drone_pos = obs['drone']
+    target_pos = obs['target']
+
+
+    assert np.array_equal(drone_pos, np.array([0.0, 0.0, 0.0])), "Drone position should be at the origin in ego-centric coordinates"
+
+    assert len(drone_pos) == 3, "Drone position should have 3 elements (x, y, heading)"
+    assert len(target_pos) == 3, "Target position should have 3 elements (x, y, heading)"
+
 
 
 def test_render(env):
@@ -112,11 +134,6 @@ def test_render(env):
         env.render()
 
     assert True, "Render method should run without error"
-
-
-
-
-
 
 
 

@@ -8,7 +8,7 @@ register(
     max_episode_steps=10000,
     ) 
 
-# import os
+
 
 try:
     from ._CityEnvGym import *
@@ -23,6 +23,10 @@ except ImportError as e:
             f"Could not load C++ extension 'CityEnvGym'. "
             f"Ensure it is built and installed correctly. Original error: {e}"
         ) from e
+    
+
+from . import utils
+from . import wrappers
 
 __all__ = [
     "Position",
