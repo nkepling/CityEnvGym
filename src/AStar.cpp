@@ -1,39 +1,38 @@
 #include "AStar.hpp"
 
-#include <queue>       // For std::priority_queue
-#include <unordered_set> // For the "closed list"
+#include <queue>       
+#include <unordered_set> 
 #include <vector>
-#include <cmath>       // For std::abs
-#include <algorithm>   // For std::reverse
-#include <iostream>    // For debugging output
+#include <cmath>       
+#include <algorithm>   
+#include <iostream>   
 
 namespace AStar {
 
-// Represents a node in the search grid
+
 struct Node {
     Vec2i position;
-    int g_cost = 0; // Cost from the start node
-    int h_cost = 0; // Heuristic cost to the goal node
+    int g_cost = 0; 
+    int h_cost = 0; 
     Node* parent = nullptr;
 
     int get_f_cost() const {
         return g_cost + h_cost;
     }
 
-    // Needed for storing nodes in a set
+
     bool operator==(const Node& other) const {
         return position.x() == other.position.x() && position.y() == other.position.y();
     }
 };
 
-// Custom comparator for the priority queue to sort by F-cost
+
 struct CompareNode {
     bool operator()(const Node* a, const Node* b) const {
         return a->get_f_cost() > b->get_f_cost();
     }
 };
 
-// Custom hash function for Vec2i to use it in an unordered_set
 struct Vec2iHash {
     std::size_t operator()(const Vec2i& v) const {
         // A simple hash combination
@@ -97,8 +96,7 @@ std::vector<Vec2i> findPath(
         Node* current_node = open_list.top();
         open_list.pop();
 
-        // If this position is in the closed list, it means we have already
-        // found a better path to it. So, we skip this one.
+
         if (closed_list.count(current_node->position)) {
             continue;
         }
@@ -124,8 +122,7 @@ std::vector<Vec2i> findPath(
                 continue;
             }
             
-            // The check for the closed list is removed from here.
-            // We create a new node and add it to the open list.
+
             int tentative_g_cost = current_node->g_cost + ((dir.x() == 0 || dir.y() == 0) ? 10 : 14);
             Node* neighbor_node = create_node(
                 neighbor_pos,

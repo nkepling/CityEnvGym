@@ -17,7 +17,6 @@ class CityEnvironment(gym.Env):
     """
     metadata = {"render_modes": ["human"], "render_fps": 60} 
 
-    # The __init__ signature is simplified as the environment handles one drone/target internally
     def __init__(self,**kwargs) -> None:
         super().__init__()
 
@@ -78,14 +77,11 @@ class CityEnvironment(gym.Env):
             origin = (-world_width / 2, -world_height / 2),  # Center the origin
         )
 
-        #BUG THE observation space bounds are hardcoded to the world size
-        # x,y,theta,vx,vy
 
-        # 1. Define the base bounds for a single step [x, y]
         low_bounds_single_step = np.array([-self.world_width / 2, -self.world_height / 2], dtype=np.float32)
         high_bounds_single_step = np.array([self.world_width / 2, self.world_height / 2], dtype=np.float32)
 
-# 2. Use np.tile to repeat these bounds for each step, creating the (N, 2) shape
+
         low_bounds_full = np.tile(low_bounds_single_step, (self.num_evader_steps, 1))
         high_bounds_full = np.tile(high_bounds_single_step, (self.num_evader_steps, 1))
 
@@ -113,12 +109,10 @@ class CityEnvironment(gym.Env):
             )
         })
 
-        # Action space for one drone: [target_vx, target_vy, target_yaw_rate]
-     # Define the true, physical bounds of your actions
+
         self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
         self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
 
-        # The action space exposed to the SB3 agent is normalized
         self.action_space = spaces.Box(
             low=-1.0, 
             high=1.0, 
@@ -128,8 +122,7 @@ class CityEnvironment(gym.Env):
 
 
     def step(self, action: Any) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
-        # This method will need to be implemented next
-        # For now, it will raise an error as intended by gym.Env
+
 
         if not isinstance(action, np.ndarray) or action.shape != (3,):
             raise ValueError("Action must be a numpy array of shape (3,) representing [target_vx, target_vy, target_yaw_rate].")
@@ -185,11 +178,8 @@ class CityEnvironment(gym.Env):
         """
         super().reset(seed=seed)
         
-        # C++ reset() returns a State object
         state = self.city_env.reset()
 
-        
-        # CORRECTED: Access the single 'state.drone' and 'state.target' directly
         obs = {
             "drone": np.array([
                 state.drone.position.x(), 
