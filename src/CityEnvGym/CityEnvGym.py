@@ -80,39 +80,51 @@ class CityEnvironment(gym.Env):
 
         #BUG THE observation space bounds are hardcoded to the world size
         # x,y,theta,vx,vy
+
+        # 1. Define the base bounds for a single step [x, y]
+        low_bounds_single_step = np.array([-self.world_width / 2, -self.world_height / 2], dtype=np.float32)
+        high_bounds_single_step = np.array([self.world_width / 2, self.world_height / 2], dtype=np.float32)
+
+# 2. Use np.tile to repeat these bounds for each step, creating the (N, 2) shape
+        low_bounds_full = np.tile(low_bounds_single_step, (self.num_evader_steps, 1))
+        high_bounds_full = np.tile(high_bounds_single_step, (self.num_evader_steps, 1))
+
         self.observation_space = spaces.Dict({
             "drone": spaces.Box(
-                low=np.array([-self.world_width/2, -self.world_height/2, 0, -15, -15], dtype=np.float32), 
-                high=np.array([self.world_width/2, self.world_height/2, 2*np.pi, 15, 15], dtype=np.float32), 
+                low=np.array([-self.world_width/2, -self.world_height/2, -np.pi, -15, -15], dtype=np.float32), 
+                high=np.array([self.world_width/2, self.world_height/2, np.pi, 15, 15], dtype=np.float32), 
                 shape=(5,), 
                 dtype=np.float32
             ),
-            "target": spaces.Box(
-                low=np.array([-self.world_width/2, -self.world_height/2, 0], dtype=np.float32), 
-                high=np.array([self.world_width/2, self.world_height/2, 2*np.pi], dtype=np.float32), 
-                shape=(3,), 
-                dtype=np.float32
-            ),
-              "future_evader_positions": spaces.Box(
-                # Create low and high bounds with the correct shape (2, num_evader_steps)
-                low=np.tile(np.array([-self.world_width/2, -self.world_height/2], dtype=np.float32)[:, np.newaxis], (1, self.num_evader_steps)),
-                high=np.tile(np.array([self.world_width/2, self.world_height/2], dtype=np.float32)[:, np.newaxis], (1, self.num_evader_steps)),
-                shape=(2, self.num_evader_steps),
-                dtype=np.float32
-            ),
+           "target": spaces.Box(
+            # The first two elements are relative position, the third is relative yaw
+            low=np.array([-self.world_width, -self.world_height, -np.pi], dtype=np.float32),
+            high=np.array([self.world_width, self.world_height, np.pi], dtype=np.float32),
+            shape=(3,),
+            dtype=np.float32
+        ),
+          "future_evader_positions": spaces.Box(
+                low=low_bounds_full,
+                high=high_bounds_full,
 
-            "time_elapsed": spaces.Box(low=0.0, high=np.inf, shape=(1,), dtype=np.float32)
+                shape=(self.num_evader_steps, 2),
+                
+                dtype=np.float32
+            )
         })
 
         # Action space for one drone: [target_vx, target_vy, target_yaw_rate]
-        # should maybe normlalize the action space to be between -1 and 1
+     # Define the true, physical bounds of your actions
+        self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
+        self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
+
+        # The action space exposed to the SB3 agent is normalized
         self.action_space = spaces.Box(
-            low=np.array([-15.0, -15.0, -np.pi]), 
-            high=np.array([15.0, 15.0, np.pi]), 
+            low=-1.0, 
+            high=1.0, 
             shape=(3,), 
             dtype=np.float32
         )
-
 
 
     def step(self, action: Any) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
@@ -122,7 +134,9 @@ class CityEnvironment(gym.Env):
         if not isinstance(action, np.ndarray) or action.shape != (3,):
             raise ValueError("Action must be a numpy array of shape (3,) representing [target_vx, target_vy, target_yaw_rate].")
         
-        state = self.city_env.step(action)
+
+        true_action = self.true_action_low + (action + 1.0) * 0.5 * (self.true_action_high - self.true_action_low)
+        state = self.city_env.step(true_action)
 
         drone_pos = state.drone.position
         drone_vel = state.drone.velocity
@@ -135,8 +149,9 @@ class CityEnvironment(gym.Env):
         ], dtype=np.float32)
 
 
-        future_evader_positions = np.array(state.future_target_positions).reshape(-1, 2).T  # Reshape to (3, num_steps) for x, y, yaw
-        
+        future_evader_positions = np.array(state.future_target_positions).reshape(2, -1).T  
+        assert future_evader_positions.shape == (self.num_evader_steps, 2), f"Future evader positions should have shape (2, num_evader_steps), got {future_evader_positions.shape}"
+
         obs = {"drone": drone_state,
                "target": np.array([
                    state.target.position.x(), 
@@ -144,7 +159,6 @@ class CityEnvironment(gym.Env):
                    state.target.position.yaw,
                ], dtype=np.float32),
                "future_evader_positions": future_evader_positions,
-               "time_elapsed": np.array([state.time_elapsed], dtype=np.float32)
            }
         
         reward = state.reward  # Assuming the State object has a reward attribute
@@ -155,7 +169,12 @@ class CityEnvironment(gym.Env):
             done = False
         truncated = False  # Assuming no truncation logic is implemented yet
 
-        info = {}
+        info = {"time_elapsed": state.time_elapsed}
+
+
+
+      
+        # --- End Debugging Block ---
         return obs, reward, done, truncated, info
 
 
@@ -184,10 +203,9 @@ class CityEnvironment(gym.Env):
                 state.target.position.y(), 
                 state.target.position.yaw,
             ], dtype=np.float32),
-            "time_elapsed": np.array([state.time_elapsed], dtype=np.float32),
-            "future_evader_positions": np.array(state.future_target_positions).reshape(-1, 2).T  # Reshape to (3, num_steps) for x, y, yaw
+            "future_evader_positions": np.array(state.future_target_positions).reshape(2, -1).T  # Reshape to (2, num_steps) for x, y
         }
-        return obs, {}
+        return obs, {"time_elapsed": state.time_elapsed}
 
     def render(self,window=100) -> None:
             """Renders the current state of the environment using matplotlib."""

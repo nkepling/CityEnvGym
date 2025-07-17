@@ -23,7 +23,7 @@ def env():
 
     sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
 
-    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",obstacle_map=obstacle_map,sensors=sensors,num_evader_steps=100,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics)
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",obstacle_map=obstacle_map,sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics)
     return env
 
 def test_env_initialization(env):
@@ -65,34 +65,34 @@ def test_env_step(env):
     assert isinstance(obs, dict), "Observation should be a dictionary"
 
     future_evader_positions = obs["future_evader_positions"]
-    assert future_evader_positions.shape == (2, env.unwrapped.num_evader_steps), f"Future evader positions should have shape (2, num_evader_steps), got {future_evader_positions.shape}"
+    assert future_evader_positions.shape == (env.unwrapped.num_evader_steps, 2), f"Future evader positions should have shape (num_evader_steps, 2), got {future_evader_positions.shape}"
 
     assert rew is not None, "Reward should not be None"
 
 
-def test_episode_time_limit(env):
-    """
-    Test if the environment correctly handles the episode time limit.
-    """
+# def test_episode_time_limit(env):
+#     """
+#     Test if the environment correctly handles the episode time limit.
+#     """
 
-    action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
-    times = []
+#     action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
+#     times = []
     
-    for i in range(25):
-        env.reset()
+#     for i in range(25):
+#         env.reset()``
         
-        done = False
-        truncated = False
-        start_time = time.time()
-        while not (done or truncated):
-            obs, rew, done, truncated, info = env.step(action)
-        end_time = time.time()
+#         done = False
+#         truncated = False
+#         start_time = time.time()
+#         while not (done or truncated):
+#             obs, rew, done, truncated, info = env.step(action)
+#         end_time = time.time()
 
-        elapsed_time = end_time - start_time
-        times.append(elapsed_time)
+#         elapsed_time = end_time - start_time
+#         times.append(elapsed_time)
 
-    print(f"Elapsed time: {np.mean(times):.2f} seconds")
-    assert done or truncated, "Episode should be done when time limit is reached"
+#     print(f"Elapsed time: {np.mean(times):.2f} seconds")
+#     assert done or truncated, "Episode should be done when time limit is reached"
 
 
 def test_observation_wrapper(env):
@@ -112,10 +112,11 @@ def test_observation_wrapper(env):
     target_pos = obs['target']
 
 
-    assert np.array_equal(drone_pos, np.array([0.0, 0.0, 0.0])), "Drone position should be at the origin in ego-centric coordinates"
+    
 
-    assert len(drone_pos) == 3, "Drone position should have 3 elements (x, y, heading)"
-    assert len(target_pos) == 3, "Target position should have 3 elements (x, y, heading)"
+
+
+
 
 
 

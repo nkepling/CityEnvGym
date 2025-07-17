@@ -56,6 +56,9 @@ namespace city_env {
         target.position.yaw = 0.0f;
 
         time_elapsed = 0.0f;
+        target.path.clear();
+        target.current_path_index = 0;
+    
 
         target.position.vector.setZero();
 
@@ -90,7 +93,7 @@ namespace city_env {
         int future_path_final_index = target.current_path_index + target.num_steps;
 
         std::vector<Eigen::Vector2f> future_positions;
-        for (int i = current_target_index + 1; i <= future_path_final_index && i < target.path.size(); ++i) {
+        for (int i = current_target_index + 1; i <= future_path_final_index && i <= target.path.size(); ++i) {
             future_positions.push_back(target.path[i]);
         }
 
@@ -199,8 +202,15 @@ namespace city_env {
         );
 
         for (const Eigen::Vector2i& node : path) {
-            target.path.push_back(mapToWorld(node));
+            new_full_path.push_back(mapToWorld(node));
         }
+
+        target.path = new_full_path;
+        target.current_path_index = 0;
+
+        // for (const Eigen::Vector2i& node : path) {
+        //     target.path.push_back(mapToWorld(node));
+        // }
 
         //std::cout << "Precomputed target path with " << target.path.size() << " waypoints." << std::endl;
     }
@@ -208,7 +218,7 @@ namespace city_env {
     void CityEnv::update_target() {
 
         float points_left = target.path.size() - target.current_path_index;
-        if (target.path.empty() || target.current_path_index >= target.path.size() - 1 || points_left < target.num_steps) {
+        if (target.path.empty() || target.current_path_index >= target.path.size()  || points_left <= target.num_steps) {
 
             while (target.path.size() < target.current_path_index + target.num_steps + 1) {
                 precompute_target_path();
