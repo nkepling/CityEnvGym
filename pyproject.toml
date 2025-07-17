@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "CityEnvGym"
-description = "A great package."
+description = "A 2d drone simulation environment for RL. Has a 'city like' obstacle map and realistic physics."
 readme = "README.md"
 version = "0.1.0"
 authors = [
