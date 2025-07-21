@@ -142,8 +142,15 @@ class CityEnvironment(gym.Env):
         ], dtype=np.float32)
 
 
-        future_evader_positions = np.array(state.future_target_positions).reshape(2, -1).T  
-        assert future_evader_positions.shape == (self.num_evader_steps, 2), f"Future evader positions should have shape (2, num_evader_steps), got {future_evader_positions.shape}"
+
+        future_pos_list = state.future_target_positions
+        num_received_points = len(future_pos_list)
+
+        padded_positions = np.zeros((self.num_evader_steps, 2), dtype=np.float32)
+
+        if num_received_points > 0:
+            received_positions = np.array(future_pos_list, dtype=np.float32)
+            padded_positions[:num_received_points, :] = received_positions
 
         obs = {"drone": drone_state,
                "target": np.array([
@@ -151,50 +158,45 @@ class CityEnvironment(gym.Env):
                    state.target.position.y(), 
                    state.target.position.yaw,
                ], dtype=np.float32),
-               "future_evader_positions": future_evader_positions,
+               "future_evader_positions": padded_positions,
            }
         
         reward = state.reward  # Assuming the State object has a reward attribute
-        
-        if state.time_elapsed >= self.max_time:
-            done = True
-        else:
-            done = False
-        truncated = False  # Assuming no truncation logic is implemented yet
 
+        done = state.time_elapsed >= self.max_time
+        truncated = False  
         info = {"time_elapsed": state.time_elapsed}
 
-
-
-      
         # --- End Debugging Block ---
         return obs, reward, done, truncated, info
 
-
-
     def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[Any, dict[str, Any]]:
-        """
-        Resets the environment to its initial state and returns the new state.
-        """
         super().reset(seed=seed)
-        
         state = self.city_env.reset()
 
+
+        drone_state = np.array([
+            state.drone.position.x(), state.drone.position.y(), state.drone.position.yaw,
+            state.drone.velocity[0], state.drone.velocity[1],
+        ], dtype=np.float32)
+
+        target_state = np.array([
+            state.target.position.x(), state.target.position.y(), state.target.position.yaw,
+        ], dtype=np.float32)
+
+        future_pos_list = state.future_target_positions
+        num_received_points = len(future_pos_list)
+        padded_positions = np.zeros((self.num_evader_steps, 2), dtype=np.float32)
+        if num_received_points > 0:
+            received_positions = np.array(future_pos_list, dtype=np.float32)
+            padded_positions[:num_received_points, :] = received_positions
+
         obs = {
-            "drone": np.array([
-                state.drone.position.x(), 
-                state.drone.position.y(), 
-                state.drone.position.yaw,
-                state.drone.velocity[0], 
-                state.drone.velocity[1], 
-            ], dtype=np.float32),
-            "target": np.array([
-                state.target.position.x(), 
-                state.target.position.y(), 
-                state.target.position.yaw,
-            ], dtype=np.float32),
-            "future_evader_positions": np.array(state.future_target_positions).reshape(2, -1).T  # Reshape to (2, num_steps) for x, y
+            "drone": drone_state,
+            "target": target_state,
+            "future_evader_positions": padded_positions,
         }
+
         return obs, {"time_elapsed": state.time_elapsed}
 
     def render(self,window=100) -> None:
@@ -270,3 +272,14 @@ class CityEnvironment(gym.Env):
 
     def seed(self, seed: int | None = None) -> list[int]:
         pass
+
+
+    def _convert_observation(self, obs: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        """
+        Converts the observation dictionary to a format suitable for the environment.
+        """
+        return {
+            "drone": obs["drone"].astype(np.float32),
+            "target": obs["target"].astype(np.float32),
+            "future_evader_positions": obs["future_evader_positions"].astype(np.float32)
+        }
