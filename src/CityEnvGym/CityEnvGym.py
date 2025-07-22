@@ -220,7 +220,7 @@ class CityEnvironment(gym.Env):
                 plt.ion()
                 self.fig, self.ax = plt.subplots(figsize=(8, 8))
                 self.ax.imshow(self.obstacle_map_for_render, cmap='gray_r', origin='lower', extent=[-self.world_width/2, self.world_width/2, -self.world_height/2, self.world_height/2])
-                self.drone_plot = self.ax.scatter([], [], s=100, marker='>', c='blue', label='Drone')
+                self.drone_plot = self.ax.scatter([], [], s=100, marker='x', c='blue', label='Drone')
                 self.target_plot = self.ax.scatter([], [], s=100, marker='x', c='red', label='Target')
                 self.drone_vel_plot = self.ax.quiver([], [], [], [], color='blue', alpha=0.8, scale=100, width=0.005)
                 self.target_vel_plot = self.ax.quiver([], [], [], [], color='red', alpha=0.8, scale=100, width=0.005)

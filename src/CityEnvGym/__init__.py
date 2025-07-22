@@ -5,17 +5,14 @@ from gymnasium import register
 register(
     id="CityEnvGym/CityEnv-v0",
     entry_point="CityEnvGym.CityEnvGym:CityEnvironment",
-    max_episode_steps=10000,
+    max_episode_steps=18000,
     ) 
-
 
 
 try:
     from ._CityEnvGym import *
 
 except ImportError as e:
-
-
 
     raise ImportError(
         f"Could not load C++ extension 'CityEnvGym'. "
