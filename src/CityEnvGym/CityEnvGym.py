@@ -94,8 +94,8 @@ class CityEnvironment(gym.Env):
             ),
            "target": spaces.Box(
             # The first two elements are relative position, the third is relative yaw
-            low=np.array([-self.world_width, -self.world_height, -np.pi], dtype=np.float32),
-            high=np.array([self.world_width, self.world_height, np.pi], dtype=np.float32),
+            low=np.array([-self.world_width, -self.world_height, -np.pi,-self.target_physics["max_speed"],-self.target_physics["max_speed"]], dtype=np.float32),
+            high=np.array([self.world_width, self.world_height, np.pi,self.target_physics["max_speed"],self.target_physics["max_speed"]], dtype=np.float32),
             shape=(3,),
             dtype=np.float32
         ),
@@ -164,6 +164,8 @@ class CityEnvironment(gym.Env):
                    state.target.position.x(), 
                    state.target.position.y(), 
                    state.target.position.yaw,
+                   state.target.velocity[0],
+                    state.target.velocity[1],
                ], dtype=np.float32),
                "future_evader_positions": padded_positions,
            }
@@ -188,7 +190,7 @@ class CityEnvironment(gym.Env):
         ], dtype=np.float32)
 
         target_state = np.array([
-            state.target.position.x(), state.target.position.y(), state.target.position.yaw,
+            state.target.position.x(), state.target.position.y(), state.target.position.yaw,state.target.velocity[0], state.target.velocity[1]
         ], dtype=np.float32)
 
         future_pos_list = state.future_target_positions
