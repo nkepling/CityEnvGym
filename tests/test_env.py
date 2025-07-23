@@ -111,10 +111,8 @@ def test_observation_wrapper(env):
     drone_pos = obs['drone']
     target_pos = obs['target']
 
-
-    
-
-
+    assert drone_pos.shape == (5,), "Drone observation should have shape (5,)"
+    assert target_pos.shape == (5,), "Target observation should have shape (5,)"
 
 
 

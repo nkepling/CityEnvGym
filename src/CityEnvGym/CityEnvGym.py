@@ -96,7 +96,7 @@ class CityEnvironment(gym.Env):
             # The first two elements are relative position, the third is relative yaw
             low=np.array([-self.world_width, -self.world_height, -np.pi,-self.target_physics["max_speed"],-self.target_physics["max_speed"]], dtype=np.float32),
             high=np.array([self.world_width, self.world_height, np.pi,self.target_physics["max_speed"],self.target_physics["max_speed"]], dtype=np.float32),
-            shape=(3,),
+            shape=(5,),
             dtype=np.float32
         ),
           "future_evader_positions": spaces.Box(

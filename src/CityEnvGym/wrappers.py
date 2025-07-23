@@ -30,13 +30,14 @@ class EgoCentricObservationWrapper(ObservationWrapper):
 
 
         ego_drone_vel = rotate_vector(drone_vel, -drone_yaw)
+        target_vel = rotate_vector(target_pos[3:], -drone_yaw)  # Assuming target also has vx, vy   
         
         new_obs = {
 
             "drone": np.concatenate([ego_drone,ego_drone_vel]).astype(np.float32),
-            
-            "target": ego_target_pos.astype(np.float32), # Assuming target also has vx,vy
-            
+
+            "target": np.concatenate([ego_target_pos, target_vel]).astype(np.float32), # Assuming target also has vx,vy
+
             "future_evader_positions": ego_future_traj.astype(np.float32)
         }
         
