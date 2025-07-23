@@ -110,8 +110,15 @@ class CityEnvironment(gym.Env):
         })
 
 
-        self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
-        self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
+
+
+        if hasattr(self.drone_physics,"max_speed"):
+            self.true_action_low = np.array([-self.drone_physics["max_speed"], -self.drone_physics["max_speed"], -np.pi], dtype=np.float32)
+            self.true_action_high = np.array([self.drone_physics["max_speed"], self.drone_physics["max_speed"], np.pi], dtype=np.float32)
+        else:
+            self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
+            self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
+        
 
         self.action_space = spaces.Box(
             low=-1.0, 
