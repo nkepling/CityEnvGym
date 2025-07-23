@@ -87,8 +87,8 @@ class CityEnvironment(gym.Env):
 
         self.observation_space = spaces.Dict({
             "drone": spaces.Box(
-                low=np.array([-self.world_width/2, -self.world_height/2, -np.pi, -15, -15], dtype=np.float32), 
-                high=np.array([self.world_width/2, self.world_height/2, np.pi, 15, 15], dtype=np.float32), 
+                low=np.array([-self.world_width/2, -self.world_height/2, -np.pi, -self.drone_physics["max_speed"], -self.drone_physics["max_speed"]], dtype=np.float32), 
+                high=np.array([self.world_width/2, self.world_height/2, np.pi, self.drone_physics["max_speed"], self.drone_physics["max_speed"]], dtype=np.float32), 
                 shape=(5,), 
                 dtype=np.float32
             ),
@@ -113,8 +113,8 @@ class CityEnvironment(gym.Env):
 
 
         if hasattr(self.drone_physics,"max_speed"):
-            self.true_action_low = np.array([-self.drone_physics["max_speed"], -self.drone_physics["max_speed"], -np.pi], dtype=np.float32)
-            self.true_action_high = np.array([self.drone_physics["max_speed"], self.drone_physics["max_speed"], np.pi], dtype=np.float32)
+            self.true_action_low = np.array([-self.drone_physics["max_speed"], -self.drone_physics["max_speed"], -self.drone_physics["max_angular_velocity"]], dtype=np.float32)
+            self.true_action_high = np.array([self.drone_physics["max_speed"], self.drone_physics["max_speed"], self.drone_physics["max_angular_velocity"]], dtype=np.float32)
         else:
             self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
             self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)

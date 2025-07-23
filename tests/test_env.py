@@ -18,8 +18,8 @@ def env():
     # obstacle_map[5][5] = True  # Example obstacle
     # obstacle_map[7][7] = True  # Another example obstacle
 
-    target_physics = {"mass":5,"max_speed":15.0,}
-    drone_physics = {"mass":5,"max_speed":15.0,}
+    target_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+    drone_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
 
     sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
 
