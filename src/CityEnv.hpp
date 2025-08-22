@@ -4,11 +4,10 @@
 #include <utility> // For std::pair
 #include <Eigen/Dense>
 #include <random> 
-
+#include <optional> // Required for std::optional
 
 namespace city_env {
 
-    // vx,vy,angular_acceleration
     using Action = Eigen::Vector3f;
 
     struct Sensor {
@@ -76,6 +75,9 @@ namespace city_env {
         float reward = 0.0f; // Reward can be computed based on the drone's state
     };
 
+
+
+
     class CityEnv {
     public:
         // Constructor now takes single drone and target objects
@@ -90,10 +92,12 @@ namespace city_env {
             Target target,
             float resolution = 1.0f,
             const Eigen::Vector2f& origin = Eigen::Vector2f(-500.0f, -500.0f),
-            const std::vector<city_env::Sensor>& sensors = {}
+            const std::vector<city_env::Sensor>& sensors = {},
+            std::optional<unsigned int> seed = std::nullopt,
+            std::optional<Eigen::Vector2f> target_initial_position = std::nullopt
         );
-        
-        State reset();
+
+        State reset(std::optional<unsigned int> seed = std::nullopt);
         // Step now takes a single action
         State step(const Action& action);
         State get_state() const;
@@ -105,6 +109,8 @@ namespace city_env {
         bool checkSensors() const;
         Eigen::Vector2f mapToWorld(const Eigen::Vector2i& mapCoords) const;
         Eigen::Vector2i worldToMap(const Eigen::Vector2f& worldCoords) const;
+        void seed(unsigned int seed);
+
 
     private:
         // Member variables updated for a single drone/target
@@ -121,6 +127,10 @@ namespace city_env {
         float resolution;
         Eigen::Vector2f origin;
         std::vector<city_env::Sensor> _sensors;
+        bool randomize_target_on_reset; 
+        Eigen::Vector2f initial_target_position; 
+
+
 
         void update_drone(const Action& action);
         void update_target();
@@ -130,6 +140,7 @@ namespace city_env {
         bool is_in_bounds(const Eigen::Vector2i& grid_pos) const;
         mutable std::mt19937 random_generator;
         std::uniform_real_distribution<float> angle_distribution;
+        void setTargetInitialPosition(const Eigen::Vector2f& position);
         void precompute_target_path();
     };
 } // namespace city_env

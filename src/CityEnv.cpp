@@ -3,6 +3,7 @@
 #include <cmath> // Required for std::fmod, std::cos, std::sin
 #include "AStar.hpp"
 #include <algorithm>
+#include <optional> // Required for std::optional
 
 namespace city_env {
 
@@ -20,7 +21,9 @@ namespace city_env {
         Target target, 
         float resolution,
         const Eigen::Vector2f& origin,
-        const std::vector<Sensor>& sensors
+        const std::vector<Sensor>& sensors,
+        std::optional<unsigned int> seed,
+        std::optional<Eigen::Vector2f> target_initial_position
     )
     : obstacle_map(obstacle_map),
       world_width(world_width),
@@ -34,34 +37,74 @@ namespace city_env {
       resolution(resolution),
       origin(origin),
       _sensors(sensors),
-      random_generator(std::random_device()()), // Initialize random generator
       angle_distribution(0.0f, 2.0f * M_PI)
     {
 
+        if (seed.has_value()) {
+            this->seed(seed.value()); // Use the provided seed
+        } else {
+            this->seed(std::random_device()()); // Use a non-deterministic seed if none is given
+        }
+
+        if (target_initial_position.has_value()) {
+            this->initial_target_position = target_initial_position.value();
+            this->randomize_target_on_reset = false;
+        } else {
+            this->randomize_target_on_reset = true;
+        }
+        
+        this->target.position.vector = this->initial_target_position; // Set current position
+        
         this->drone.id = 0; // Set a default ID for the drone
-        this->target.position.vector = Eigen::Vector2f(0.0f, 0.0f);
-        precompute_target_path();
+
+        this->reset();
+
     }
 
     /**
      * @brief Resets the environment to its initial state.
      */
-    State CityEnv::reset() {
+    State CityEnv::reset(std::optional<unsigned int> seed) {
+
+        if (seed.has_value()) {
+            this->seed(seed.value());
+        }
         drone.position.vector.setZero();
         drone.position.yaw = 0.0f;
         drone.linear_velocity.setZero();
         drone.angular_velocity = 0.0f;
         
-        target.position.vector.setZero();
+    
+
+        if (this->randomize_target_on_reset) {
+            
+
+            std::cout << "Randomizing target position" << std::endl;
+            Eigen::Vector2i random_grid_pos;
+            std::uniform_int_distribution<int> x_dist(0, obstacle_map[0].size() - 1);
+            std::uniform_int_distribution<int> y_dist(0, obstacle_map.size() - 1);
+
+            do {
+                random_grid_pos.y() = y_dist(random_generator);
+                random_grid_pos.x() = x_dist(random_generator);
+            } while (obstacle_map[random_grid_pos.y()][random_grid_pos.x()]);
+
+
+            target.position.vector = mapToWorld(random_grid_pos);
+
+        } else {
+            // Use the fixed starting position provided during construction
+            target.position.vector = this->initial_target_position;
+            std::cout << "Using fixed target position: " << target.position.vector.transpose() << std::endl;
+        }
         target.position.yaw = 0.0f;
+        target.linear_velocity.setZero();  
+        target.angular_velocity = 0.0f;
 
         time_elapsed = 0.0f;
         target.path.clear();
         target.current_path_index = 0;
     
-
-        target.position.vector.setZero();
-
         while (target.path.size() < target.num_steps + 1) {
             precompute_target_path();
         }
@@ -407,4 +450,12 @@ namespace city_env {
         }
         return false; 
     }
-} 
+
+    void CityEnv::seed(unsigned int seed) {
+        random_generator.seed(seed);
+    }
+
+    void CityEnv::setTargetInitialPosition(const Eigen::Vector2f& position) {
+        this->initial_target_position = position;
+    }
+} // namespace city_env

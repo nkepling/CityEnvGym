@@ -104,7 +104,10 @@ PYBIND11_MODULE(_CityEnvGym, m) {
                 city_env::Target,                            // 8. target
                 float,                                       // 9. resolution
                 const Eigen::Vector2f&,                      // 10. origin
-                const std::vector<city_env::Sensor>&         // 11. sensors (Use city_env::Sensor)
+                const std::vector<city_env::Sensor>&,         // 11. sensors (Use city_env::Sensor)
+                std::optional<unsigned int>,               // 12. seed
+                std::optional<Eigen::Vector2f>      
+
              >(),
              py::arg("obstacle_map"),       // 1
              py::arg("world_width"),        // 2
@@ -116,11 +119,18 @@ PYBIND11_MODULE(_CityEnvGym, m) {
              py::arg("target"),             // 8
              py::arg("resolution") = 1.0f,  // 9 (with default)
              py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
-             py::arg("sensors") = std::vector<city_env::Sensor>() // 11 (with default)
+             py::arg("sensors") = std::vector<city_env::Sensor>(), // 11 (with default)
+             py::arg("seed") = py::none(),                  
+             py::arg("target_initial_position") = py::none() 
 
         )
-        .def("reset", &city_env::CityEnv::reset,
-             "Resets the environment to its initial state and returns the new state.")
+        .def("reset", [](city_env::CityEnv &self, std::optional<unsigned int> seed) {
+         // This lambda calls the C++ reset method, passing the optional seed.
+         // pybind11 automatically converts Python's None to std::nullopt.
+         return self.reset(seed);
+        },
+        py::arg("seed") = py::none(), // Creates a keyword argument 'seed' with a default value of None
+        "Resets the environment. An optional seed can be provided for reproducibility.")
 
         // UPDATED: The step function now takes a single action
         .def("step", &city_env::CityEnv::step,

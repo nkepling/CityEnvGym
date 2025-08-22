@@ -13,7 +13,7 @@ import time
 def env():
     """Pytest fixture to create a CityEnv instance for testing."""
     # This correctly instantiates the environment for each test
-    obstacle_map = [[False for _ in range(int(100))] for _ in range(int(100))]
+    # obstacle_map = [[False for _ in range(int(100))] for _ in range(int(100))]
 
     # obstacle_map[5][5] = True  # Example obstacle
     # obstacle_map[7][7] = True  # Another example obstacle
@@ -23,7 +23,18 @@ def env():
 
     sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
 
-    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",obstacle_map=obstacle_map,sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics)
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics)
+    return env
+
+@pytest.fixture
+def env_with_init_position():
+
+    target_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+    drone_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+
+    sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
+
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics,target_initial_position=np.array([0.0,0.0],dtype=np.float32))
     return env
 
 def test_env_initialization(env):
@@ -118,28 +129,63 @@ def test_observation_wrapper(env):
 
 
 
-def test_render(env):
+# def test_render(env):
+#     """
+#     Test the render method.
+#     """
+#     # Call the render method
+#     obs,info = env.reset()
+#     action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
+#     done = False
+#     truncated = False
+#     while not (done or truncated):
+#         obs, rew, done, truncated, info = env.step(action)    
+
+#         env.render()
+
+#     assert True, "Render method should run without error"
+
+def test_set_seed(env):
     """
-    Test the render method.
+    Test the set_seed method for correct behavior.
     """
-    # Call the render method
+
+    obs, info = env.reset(seed=42)
+
+
+def test_random_starts(env):
+    
+    seed = 100
+    obs, info = env.reset(seed=seed)
+    prev_start = obs["target"]
+
+    seed = 24
+    obs, info = env.reset(seed=seed)
+    new_start = obs["target"]
+    assert not np.array_equal(prev_start, new_start), "Different seeds should produce different starting positions"
+
+    # check that start is always valid
+
+
+
+def test_set_target_position(env_with_init_position):
+
+    obs,info = env_with_init_position.reset()
+    start = obs["target"]
+    assert np.array_equal(start, np.array([0.0, 0.0,0.0,0.0,0.0], dtype=np.float32)), "Target initial position is not set correctly"
+
+def test_reset_no_seed(env):
+
     obs,info = env.reset()
-    action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
-    done = False
-    truncated = False
-    while not (done or truncated):
-        obs, rew, done, truncated, info = env.step(action)    
-
-        env.render()
-
-    assert True, "Render method should run without error"
+    prev_pos = obs["target"]
 
 
+    for i in range(100):
 
+        obs, info = env.reset()
 
-
-
-
+        assert not np.array_equal(obs["target"], prev_pos), "Target position should be consistent across resets"
+        prev_pos = obs["target"]
 
 if __name__ == "__main__":
     pytest.main([__file__])

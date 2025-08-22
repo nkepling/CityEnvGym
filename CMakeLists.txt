@@ -13,7 +13,9 @@ add_library(CityEnv STATIC
     src/AStar.cpp
 )
 
+target_compile_features(CityEnv PUBLIC cxx_std_17)
 set_target_properties(CityEnv PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 
 # 4. Link CityEnv against the A* library and other dependencies.
 target_link_libraries(CityEnv PUBLIC

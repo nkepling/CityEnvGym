@@ -28,7 +28,6 @@ class EgoCentricObservationWrapper(ObservationWrapper):
         ego_target_pos = coordinate_transformation(target_pos, drone_pos)
         ego_future_traj = transform_trajectory_to_ego(future_traj_pos, drone_pos)
 
-
         ego_drone_vel = rotate_vector(drone_vel, -drone_yaw)
         target_vel = rotate_vector(target_pos[3:], -drone_yaw)  # Assuming target also has vx, vy   
         

@@ -30,6 +30,8 @@ class CityEnvironment(gym.Env):
         self.sensors = kwargs.get('sensors', [])        
         self.target_physics = kwargs.get('target_physics', None)
         self.drone_physics = kwargs.get('drone_physics', None)
+        self.target_initial_position = kwargs.get('target_initial_position', None)
+        self.seed_value = kwargs.get('seed', None)
 
         # init drone and target
 
@@ -74,7 +76,10 @@ class CityEnvironment(gym.Env):
             drone=drone, # Changed from 'drones'
             target=target,  # Changed from 'targets'
             sensors=self.sensors,
-            origin = (-world_width / 2, -world_height / 2),  # Center the origin
+            origin = (-world_width / 2, -world_height / 2),  # Center the origin,
+            seed=self.seed_value,
+            target_initial_position=self.target_initial_position
+
         )
 
 
@@ -181,7 +186,7 @@ class CityEnvironment(gym.Env):
 
     def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[Any, dict[str, Any]]:
         super().reset(seed=seed)
-        state = self.city_env.reset()
+        state = self.city_env.reset(seed=seed)
 
 
         drone_state = np.array([
