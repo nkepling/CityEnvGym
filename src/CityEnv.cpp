@@ -79,7 +79,7 @@ namespace city_env {
         if (this->randomize_target_on_reset) {
             
 
-            std::cout << "Randomizing target position" << std::endl;
+
             Eigen::Vector2i random_grid_pos;
             std::uniform_int_distribution<int> x_dist(0, obstacle_map[0].size() - 1);
             std::uniform_int_distribution<int> y_dist(0, obstacle_map.size() - 1);

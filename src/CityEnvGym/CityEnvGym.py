@@ -107,15 +107,10 @@ class CityEnvironment(gym.Env):
           "future_evader_positions": spaces.Box(
                 low=low_bounds_full,
                 high=high_bounds_full,
-
                 shape=(self.num_evader_steps, 2),
-                
                 dtype=np.float32
             )
         })
-
-
-
 
         if hasattr(self.drone_physics,"max_speed"):
             self.true_action_low = np.array([-self.drone_physics["max_speed"], -self.drone_physics["max_speed"], -self.drone_physics["max_angular_velocity"]], dtype=np.float32)
@@ -124,7 +119,6 @@ class CityEnvironment(gym.Env):
             self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
             self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
         
-
         self.action_space = spaces.Box(
             low=-1.0, 
             high=1.0, 
@@ -132,17 +126,13 @@ class CityEnvironment(gym.Env):
             dtype=np.float32
         )
 
-
     def step(self, action: Any) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
-
 
         if not isinstance(action, np.ndarray) or action.shape != (3,):
             raise ValueError("Action must be a numpy array of shape (3,) representing [target_vx, target_vy, target_yaw_rate].")
         
-
         true_action = self.true_action_low + (action + 1.0) * 0.5 * (self.true_action_high - self.true_action_low)
         state = self.city_env.step(true_action)
-
         drone_pos = state.drone.position
         drone_vel = state.drone.velocity
         drone_state = np.array([
@@ -153,11 +143,8 @@ class CityEnvironment(gym.Env):
             drone_vel[1], 
         ], dtype=np.float32)
 
-
-
         future_pos_list = state.future_target_positions
         num_received_points = len(future_pos_list)
-
         padded_positions = np.zeros((self.num_evader_steps, 2), dtype=np.float32)
 
         if num_received_points > 0:
@@ -174,12 +161,16 @@ class CityEnvironment(gym.Env):
                ], dtype=np.float32),
                "future_evader_positions": padded_positions,
            }
-        
-        reward = state.reward  # Assuming the State object has a reward attribute
 
+        reward = state.reward  # Assuming the State object has a reward attribute
         done = state.time_elapsed >= self.max_time
         truncated = False  
         info = {"time_elapsed": state.time_elapsed}
+
+        # check if there are nans/ infs in the observations
+        for key, value in obs.items():
+            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
+                info[f"{key}_invalid"] = True
 
         # --- End Debugging Block ---
         return obs, reward, done, truncated, info
