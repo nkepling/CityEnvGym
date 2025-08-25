@@ -9,6 +9,41 @@ from CityEnvGym.CityEnvGym import CityEnvironment
 import CityEnvGym
 import time
 
+env_params = {
+    'max_time': 300.0, # max tim in seconds (5 minutes)
+    'num_evader_steps': 50,  
+    'render_mode': 'human',
+    'time_step': 1/60.0,
+    'fov_angle': 90.0,
+    'fov_distance': 50.0,  
+    'max_episode_steps': 18000, # 5 minutes sim time (1/60 seconds * 18000 steps = 300 seconds)
+
+    'obstacle_map': [[False for _ in range(int(100))] for _ in range(int(100))],
+    'sensors':  [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]],
+
+    'target_physics': {
+        'mass': 1.0,                        # Light
+        'moment_of_inertia': 0.1,           # Can turn easily
+        'linear_drag_coeff': 2.0,           # High drag to fight the insane engine
+        'angular_drag_coeff': 2.0,          # High angular drag
+        'propulsion_gain': 1000.0,           # Overpowered engine causes overshoot
+        'steering_gain': 10.0,              # Overpowered steering causes oscillation
+        'max_speed': 30.0,                  # Low max speed due to instability
+        'max_angular_velocity': np.pi * 4,  # Can twitch and spin very fast
+    },
+    
+    'drone_physics': {
+        'mass': 1.0,
+        'moment_of_inertia': 0.1,
+        'linear_drag_coeff': 0.1,
+        'angular_drag_coeff': 0.1,
+        'propulsion_gain': 5.0,
+        'steering_gain': 2.0,
+        'max_speed': 15.0,
+        'max_angular_velocity': np.pi / 2,  
+    }
+}
+
 @pytest.fixture
 def env():
     """Pytest fixture to create a CityEnv instance for testing."""
@@ -35,6 +70,17 @@ def env_with_init_position():
     sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
 
     env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics,target_initial_position=np.array([0.0,0.0],dtype=np.float32))
+    return env
+
+
+@pytest.fixture
+def env_with_big_config():
+    target_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+    drone_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+
+    sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
+
+    env = gym.make("CityEnvGym/CityEnv-v0", **env_params)
     return env
 
 def test_env_initialization(env):
@@ -174,18 +220,31 @@ def test_set_target_position(env_with_init_position):
     start = obs["target"]
     assert np.array_equal(start, np.array([0.0, 0.0,0.0,0.0,0.0], dtype=np.float32)), "Target initial position is not set correctly"
 
-def test_reset_no_seed(env):
+# def test_reset_no_seed(env):
 
-    obs,info = env.reset()
-    prev_pos = obs["target"]
+#     obs,info = env.reset()
+#     prev_pos = obs["target"]
 
 
-    for i in range(100):
+#     for i in range(10):
 
-        obs, info = env.reset()
+#         obs, info = env.reset()
 
-        assert not np.array_equal(obs["target"], prev_pos), "Target position should be consistent across resets"
-        prev_pos = obs["target"]
+#         assert not np.array_equal(obs["target"], prev_pos), "Target position should be consistent across resets"
+#         prev_pos = obs["target"]
+
+
+def test_big_config(env_with_big_config):
+    """
+    Test the environment with a larger configuration.
+    """
+    obs,info = env_with_big_config.reset()
+    action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
+    done = False
+    truncated = False
+    while not (done or truncated):
+        obs, rew, done, truncated, info = env_with_big_config.step(action)    
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

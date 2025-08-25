@@ -95,7 +95,6 @@ namespace city_env {
         } else {
             // Use the fixed starting position provided during construction
             target.position.vector = this->initial_target_position;
-            std::cout << "Using fixed target position: " << target.position.vector.transpose() << std::endl;
         }
         target.position.yaw = 0.0f;
         target.linear_velocity.setZero();  
@@ -298,6 +297,12 @@ namespace city_env {
         float angular_drag_torque = -physics.angular_drag_coeff * target.angular_velocity;
         float net_torque = steering_torque + angular_drag_torque;
         float angular_acceleration = net_torque / physics.moment_of_inertia;
+
+
+        // --- ADD THIS CLAMPING BLOCK ---
+        const float max_angular_acceleration = 200.0f; // rad/s^2, adjust as needed
+        angular_acceleration = std::max(-max_angular_acceleration, std::min(angular_acceleration, max_angular_acceleration));
+        // --- END CLAMPING BLOCK ---
         
         target.angular_velocity += angular_acceleration * time_step;
         target.position.yaw += target.angular_velocity * time_step;
@@ -317,7 +322,24 @@ namespace city_env {
         Eigen::Vector2f net_force = propulsion_force + drag_force;
         Eigen::Vector2f linear_acceleration = net_force / physics.mass;
 
+        const float max_linear_acceleration = 100.0f; // A reasonable limit, e.g., ~10 G's
+        if (linear_acceleration.squaredNorm() > max_linear_acceleration * max_linear_acceleration) {
+            linear_acceleration = linear_acceleration.normalized() * max_linear_acceleration;
+        }
+
         target.linear_velocity += linear_acceleration * time_step;
+
+
+
+        if (std::isnan(target.linear_velocity.x()) || std::isnan(target.linear_velocity.y())) {
+            std::cerr << "Warning: Target linear velocity is NaN. Resetting to zero." << std::endl;
+            target.linear_velocity.setZero(); // Reset to a safe state
+        }
+
+        if (std::isnan(target.angular_velocity)) {
+            std::cerr << "Warning: Target angular velocity is NaN. Resetting to zero." << std::endl;
+            target.angular_velocity = 0.0f;
+        }
 
         // Clamp velocity to max speed
         if (target.linear_velocity.norm() > physics.max_speed) {
