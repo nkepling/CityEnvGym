@@ -18,7 +18,7 @@ requires-python = ">=3.9"
 dependencies = [
   "typing_extensions",
   "numpy",
-  "gymnasium",
+  "gymnasium[other]",
   "Pillow",
   "matplotlib",
   "pytest>=8.4.1",

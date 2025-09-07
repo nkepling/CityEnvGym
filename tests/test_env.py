@@ -9,6 +9,9 @@ from CityEnvGym.CityEnvGym import CityEnvironment
 import CityEnvGym
 import time
 
+import os
+from gymnasium.wrappers import RecordVideo
+
 env_params = {
     'max_time': 300.0, # max tim in seconds (5 minutes)
     'num_evader_steps': 50,  
@@ -292,6 +295,37 @@ def test_render_rgb_array(env_with_rgb):
     finally:
         # 4. Ensure the environment is properly closed to free resources
         env.close()
+
+def test_record_video(env_with_rgb, tmp_path):
+    """
+    Tests if the RecordVideo wrapper successfully creates a video file.
+    The `tmp_path` fixture provides a temporary directory for the test.
+    """
+    # Use the pre-configured environment with rgb_array render mode
+    base_env = env_with_rgb
+    video_folder = tmp_path / "videos"
+
+    # 1. Wrap the environment with the RecordVideo wrapper
+    # The episode_trigger makes it record the very first episode (episode 0)
+    wrapped_env = RecordVideo(
+        env=base_env,
+        video_folder=str(video_folder),
+        episode_trigger=lambda x: x == 0
+    )
+
+    # 2. Run a short episode to generate frames
+    wrapped_env.reset()
+    for _ in range(15):  # A few steps are enough to create a video
+        action = wrapped_env.action_space.sample()  # Use a random valid action
+        wrapped_env.step(action)
+
+    # 3. Close the environment. This is CRUCIAL as it's when the video is saved.
+    wrapped_env.close()
+
+    # 4. Assert that the video file was created and is not empty
+    video_files = list(video_folder.glob("*.mp4"))
+    assert len(video_files) == 1, "A single video file (.mp4) should have been created."
+    assert video_files[0].stat().st_size > 0, "The created video file should not be empty."
 
 
 if __name__ == "__main__":
