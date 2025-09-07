@@ -83,6 +83,20 @@ def env_with_big_config():
     env = gym.make("CityEnvGym/CityEnv-v0", **env_params)
     return env
 
+
+
+@pytest.fixture
+def env_with_rgb():
+
+    target_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+    drone_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+
+    sensors = [[0.0,0.0,25.0],[-50.0,-50.0,25],[50.0,50.0,25],[-50.0,50.0,25],[50.0,-50.0,25]] # x,y ,radius
+
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="rgb_array",sensors=sensors,num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics,target_initial_position=np.array([0.0,0.0],dtype=np.float32))
+    return env
+
+
 def test_env_initialization(env):
     """
     Test if the environment is created successfully and has the correct spaces.
@@ -175,21 +189,26 @@ def test_observation_wrapper(env):
 
 
 
-# def test_render(env):
-#     """
-#     Test the render method.
-#     """
-#     # Call the render method
-#     obs,info = env.reset()
-#     action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
-#     done = False
-#     truncated = False
-#     while not (done or truncated):
-#         obs, rew, done, truncated, info = env.step(action)    
+def test_render(env):
+    """
+    Test the render method.
+    """
+    # Call the render method
+    obs,info = env.reset()
+    action = np.array([15.0, 15.0, 0.0], dtype=np.float32)
+    done = False
+    truncated = False
+    start = time.time()
+    while not (done or truncated):
+        obs, rew, done, truncated, info = env.step(action)    
+        env.render()
 
-#         env.render()
+        if (time.time() - start) > 20:
+            break
 
-#     assert True, "Render method should run without error"
+    env.close()
+
+    assert True, "Render method should run without error"
 
 def test_set_seed(env):
     """
@@ -244,6 +263,35 @@ def test_big_config(env_with_big_config):
     truncated = False
     while not (done or truncated):
         obs, rew, done, truncated, info = env_with_big_config.step(action)    
+
+
+def test_render_rgb_array(env_with_rgb):
+    """
+    Tests if the render method with 'rgb_array' mode returns a valid image frame.
+    """
+    env = env_with_rgb
+    # 1. Initialize the environment specifically for rgb_array rendering
+
+    
+    try:
+        env.reset()
+        
+        # 2. Call the render method to get the frame
+        frame = env.render()
+        
+        # 3. Assert that the frame is a valid image array
+        assert frame is not None, "Render method should return a frame, not None."
+        assert isinstance(frame, np.ndarray), "The frame should be a NumPy array."
+        assert frame.dtype == np.uint8, f"Frame dtype should be np.uint8, but got {frame.dtype}."
+        
+        assert frame.ndim == 3, "The frame should be 3-dimensional (Height, Width, Channels)."
+        height, width, channels = frame.shape
+        assert height > 0 and width > 0, "Frame dimensions (height and width) must be positive."
+        assert channels == 3, "Frame must have 3 color channels (R, G, B)."
+        
+    finally:
+        # 4. Ensure the environment is properly closed to free resources
+        env.close()
 
 
 if __name__ == "__main__":

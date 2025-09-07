@@ -1,7 +1,8 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from ._CityEnvGym import CityEnv, Drone, Target, State,Sensor
+# Assuming these are in the same directory or a reachable path
+from ._CityEnvGym import CityEnv, Drone, Target, State, Sensor
 from typing import Any, SupportsFloat
 from PIL import Image
 import os
@@ -15,7 +16,8 @@ class CityEnvironment(gym.Env):
     CityEnv is a Gymnasium environment for simulating a single drone in a city.
     It provides methods to reset the environment, step through time, and render the state.
     """
-    metadata = {"render_modes": ["human"], "render_fps": 60} 
+    # FIX 1: Added 'rgb_array' to the list of supported render modes.
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
 
     def __init__(self,**kwargs) -> None:
         super().__init__()
@@ -27,7 +29,7 @@ class CityEnvironment(gym.Env):
         self.fov_angle = kwargs.get('fov_angle', 90.0)
         self.fov_distance = kwargs.get('fov_distance', 100.0)
         obstacle_map = kwargs.get('obstacle_map', None)
-        self.sensors = kwargs.get('sensors', [])        
+        self.sensors = kwargs.get('sensors', [])
         self.target_physics = kwargs.get('target_physics', None)
         self.drone_physics = kwargs.get('drone_physics', None)
         self.target_initial_position = kwargs.get('target_initial_position', None)
@@ -37,10 +39,10 @@ class CityEnvironment(gym.Env):
 
         drone = Drone()
         target = Target()
-        
+
         if self.drone_physics is not None:
             _update_physics(drone, self.drone_physics)
-        
+
         if self.target_physics is not None:
             _update_physics(target, self.target_physics)
 
@@ -92,9 +94,9 @@ class CityEnvironment(gym.Env):
 
         self.observation_space = spaces.Dict({
             "drone": spaces.Box(
-                low=np.array([-self.world_width/2, -self.world_height/2, -np.pi, -self.drone_physics["max_speed"], -self.drone_physics["max_speed"]], dtype=np.float32), 
-                high=np.array([self.world_width/2, self.world_height/2, np.pi, self.drone_physics["max_speed"], self.drone_physics["max_speed"]], dtype=np.float32), 
-                shape=(5,), 
+                low=np.array([-self.world_width/2, -self.world_height/2, -np.pi, -self.drone_physics["max_speed"], -self.drone_physics["max_speed"]], dtype=np.float32),
+                high=np.array([self.world_width/2, self.world_height/2, np.pi, self.drone_physics["max_speed"], self.drone_physics["max_speed"]], dtype=np.float32),
+                shape=(5,),
                 dtype=np.float32
             ),
            "target": spaces.Box(
@@ -118,11 +120,11 @@ class CityEnvironment(gym.Env):
         else:
             self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
             self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
-        
+
         self.action_space = spaces.Box(
-            low=-1.0, 
-            high=1.0, 
-            shape=(3,), 
+            low=-1.0,
+            high=1.0,
+            shape=(3,),
             dtype=np.float32
         )
 
@@ -130,17 +132,17 @@ class CityEnvironment(gym.Env):
 
         if not isinstance(action, np.ndarray) or action.shape != (3,):
             raise ValueError("Action must be a numpy array of shape (3,) representing [target_vx, target_vy, target_yaw_rate].")
-        
+
         true_action = self.true_action_low + (action + 1.0) * 0.5 * (self.true_action_high - self.true_action_low)
         state = self.city_env.step(true_action)
         drone_pos = state.drone.position
         drone_vel = state.drone.velocity
         drone_state = np.array([
-            drone_pos.x(), 
+            drone_pos.x(),
             drone_pos.y(),
-            drone_pos.yaw, 
-            drone_vel[0], 
-            drone_vel[1], 
+            drone_pos.yaw,
+            drone_vel[0],
+            drone_vel[1],
         ], dtype=np.float32)
 
         future_pos_list = state.future_target_positions
@@ -153,8 +155,8 @@ class CityEnvironment(gym.Env):
 
         obs = {"drone": drone_state,
                "target": np.array([
-                   state.target.position.x(), 
-                   state.target.position.y(), 
+                   state.target.position.x(),
+                   state.target.position.y(),
                    state.target.position.yaw,
                    state.target.velocity[0],
                     state.target.velocity[1],
@@ -164,7 +166,7 @@ class CityEnvironment(gym.Env):
 
         reward = state.reward  # Assuming the State object has a reward attribute
         done = state.time_elapsed >= self.max_time
-        truncated = False  
+        truncated = False
         info = {"time_elapsed": state.time_elapsed}
 
         # check if there are nans/ infs in the observations
@@ -204,11 +206,13 @@ class CityEnvironment(gym.Env):
 
         return obs, {"time_elapsed": state.time_elapsed}
 
-    def render(self,window=100) -> None:
+    # FIX 2: Updated the return type hint to reflect that it can return an array.
+    def render(self, window=100) -> np.ndarray | None:
             """Renders the current state of the environment using matplotlib."""
 
-            # TODO: Implement the rendering logic with pygame
-            if self.render_mode != "human":
+            # FIX 3: Changed the condition to allow 'rgb_array' mode to proceed.
+            # The method now only exits if no render mode is specified.
+            if self.render_mode is None:
                 return
 
             state = self.city_env.get_state()
@@ -216,10 +220,6 @@ class CityEnvironment(gym.Env):
             target_pos = state.target.position
 
             target_future_positions = state.future_target_positions
-
-            # drone_grid_pos = self.city_env.world_to_map(drone_pos.vector)
-            # target_grid_pos = self.city_env.world_to_map(target_pos.vector)
-
 
             if self.fig is None:
                 plt.ion()
@@ -229,13 +229,12 @@ class CityEnvironment(gym.Env):
                 self.target_plot = self.ax.scatter([], [], s=100, marker='x', c='red', label='Target')
                 self.drone_vel_plot = self.ax.quiver([], [], [], [], color='blue', alpha=0.8, scale=100, width=0.005)
                 self.target_vel_plot = self.ax.quiver([], [], [], [], color='red', alpha=0.8, scale=100, width=0.005)
-            
+
                 self.future_target_plot, = self.ax.plot([], [], 'r--', label='Future Target Path', alpha=0.6) # Note the comma
                 self.ax.legend()
                 self.ax.set_xlim(-self.world_width/2, self.world_width/2)
                 self.ax.set_ylim(-self.world_height/2, self.world_height/2)
                 for sensor in self.sensors:
-                    # sensor_grid_pos = self.city_env.world_to_map(sensor.position)
                     circle = Circle((sensor.position[0], sensor.position[1]), sensor.radius, color='green', fill=True, alpha=0.5)
                     self.ax.add_artist(circle)
 
@@ -252,10 +251,7 @@ class CityEnvironment(gym.Env):
             else:
                 self.future_target_plot.set_data([], [])
 
-             # Change 4: Update the velocity quiver plots
-
             drone_vel = state.drone.velocity
-
             self.drone_vel_plot.set_offsets([drone_pos.x(), drone_pos.y()])
             self.drone_vel_plot.set_UVC(drone_vel[0], drone_vel[1])
 
@@ -267,8 +263,23 @@ class CityEnvironment(gym.Env):
             self.ax.set_title(f"City Environment | Sim Time: {state.time_elapsed:.2f}s | Drone Pos : ({drone_pos.x():.2f}, {drone_pos.y():.2f}) | Target Pos: ({target_pos.x():.2f}, {target_pos.y():.2f})")
 
 
-            plt.pause(1e-9) # A very small, non-zero pause
+            if self.render_mode == "human":
+                plt.pause(1e-9)
 
+            if self.render_mode == "rgb_array":
+                self.fig.canvas.draw()
+
+                # Use the modern buffer_rgba() which handles DPI scaling correctly
+                rgba_buffer = self.fig.canvas.buffer_rgba()
+                
+                # Convert the buffer to a numpy array
+                img_array = np.asarray(rgba_buffer)
+
+                # The buffer is RGBA, so slice off the last (Alpha) channel
+                rgb_array = img_array[:, :, :3]
+
+                return rgb_array
+            
     def close(self):
         """Close the rendering window."""
         if self.fig is not None:
