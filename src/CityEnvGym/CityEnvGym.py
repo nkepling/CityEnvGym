@@ -266,7 +266,21 @@ class CityEnvironment(gym.Env):
             if self.render_mode == "human":
                 plt.pause(1e-9)
 
+
+            
+
             if self.render_mode == "rgb_array":
+
+
+                # self.fig.canvas.draw()
+                
+                # # Add this line to force the canvas to process the draw event
+                # self.fig.canvas.flush_events()
+                
+                # # Now, read the updated buffer
+                # rgba_buffer = self.fig.canvas.buffer_rgba()
+                # img_array = np.asarray(rgba_buffer)
+                # rgb_array = img_array[:, :, :3]
                 self.fig.canvas.draw()
 
                 # Use the modern buffer_rgba() which handles DPI scaling correctly
