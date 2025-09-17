@@ -3,6 +3,7 @@
 #include <pybind11/eigen.h>  // For automatic Eigen::Vector conversions
 
 #include "CityEnv.hpp" // Your main simulation header
+#include "AStar.hpp"
 
 namespace py = pybind11;
 
@@ -217,7 +218,12 @@ PYBIND11_MODULE(_CityEnvGym, m) {
 
 
 
-
+        m.def("find_path", &AStar::findPath,
+            py::arg("start_node"),
+            py::arg("goal_node"),
+            py::arg("obstacle_map"),
+            py::arg("allow_diagonal")
+        );
 
 
 

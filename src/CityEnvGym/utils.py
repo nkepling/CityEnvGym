@@ -1,5 +1,11 @@
 from PIL import Image
 import numpy as np
+from ._CityEnvGym import find_path
+
+def astar_path(start, goal, obstacle_map, allow_diagonal=True):
+    path = find_path(start, goal, obstacle_map, allow_diagonal)
+    return np.array(path)
+
 
 
 def _load_map_from_image(filepath: str) -> list[list[bool]]:
