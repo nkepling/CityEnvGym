@@ -80,6 +80,7 @@ class MultiAgentCityEnvironment(CityEnvGym.CityEnvironment):
                     state.target.velocity[1],
                ], dtype=np.float32),
                "future_evader_positions": padded_positions,
+                "time_elapsed": np.array(state.time_elapsed, dtype=np.float32)
            }
 
         reward = state.reward  # Assuming the State object has a reward attribute
