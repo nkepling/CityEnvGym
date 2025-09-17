@@ -9,6 +9,12 @@ register(
     ) 
 
 
+register(    id="CityEnvGym/MultiAgentCityEnv-v0",
+    entry_point="CityEnvGym.MultiAgentCityEnvGym:MultiAgentCityEnvironment",
+    max_episode_steps=18000,
+    )
+
+
 try:
     from ._CityEnvGym import *
 

@@ -28,57 +28,57 @@ class CityEnvironment(gym.Env):
         self.time_step = kwargs.get('time_step', 1/60.0)
         self.fov_angle = kwargs.get('fov_angle', 90.0)
         self.fov_distance = kwargs.get('fov_distance', 100.0)
-        obstacle_map = kwargs.get('obstacle_map', None)
-        self.sensors = kwargs.get('sensors', [])
+        self.obstacle_map = kwargs.get('obstacle_map', None)
+        self.sensors = kwargs.get('sensors', [])        
         self.target_physics = kwargs.get('target_physics', None)
         self.drone_physics = kwargs.get('drone_physics', None)
         self.target_initial_position = kwargs.get('target_initial_position', None)
         self.seed_value = kwargs.get('seed', None)
-
+        
         # init drone and target
 
-        drone = Drone()
-        target = Target()
-
+        self.drone = Drone()
+        self.target = Target()
+        
         if self.drone_physics is not None:
-            _update_physics(drone, self.drone_physics)
-
+            _update_physics(self.drone, self.drone_physics)
+        
         if self.target_physics is not None:
-            _update_physics(target, self.target_physics)
+            _update_physics(self.target, self.target_physics)
 
-        target.num_steps = self.num_evader_steps  # Set the number of steps for the target's path
+        self.target.num_steps = self.num_evader_steps  # Set the number of steps for the target's path
 
         self.fig = None
 
-        if obstacle_map is None:
+        if self.obstacle_map is None:
             package_dir = os.path.dirname(__file__)
             map_path = os.path.join(package_dir, 'obstacles.png')
-            obstacle_map = _load_map_from_image(map_path)
+            self.obstacle_map = _load_map_from_image(map_path)
             self.world_width = world_width = 1000.0  # Default world width
             self.world_height = world_height = 1000.0  # Default world height
-            if not obstacle_map:
-                obstacle_map = [[False for _ in range(int(self.world_width))] for _ in range(int(self.world_height))]
+            if not self.obstacle_map:
+                self.obstacle_map = [[False for _ in range(int(self.world_width))] for _ in range(int(self.world_height))]
 
 
         if self.sensors:
             self.sensors = [Sensor(*sensor) for sensor in self.sensors]
 
         # Convert the obstacle map to a numpy array for rendering
-        self.obstacle_map_for_render = np.array(obstacle_map, dtype=np.uint8)
-        self.world_width = world_width = len(obstacle_map[0])
-        self.world_height = world_height = len(obstacle_map)
+        self.obstacle_map_for_render = np.array(self.obstacle_map, dtype=np.uint8)
+        self.world_width = world_width = len(self.obstacle_map[0])
+        self.world_height = world_height = len(self.obstacle_map)
 
         self.city_env = CityEnv(
-            obstacle_map=obstacle_map,
-            world_width=world_width,
-            world_height=world_height,
+            obstacle_map=self.obstacle_map,
+            world_width=self.world_width,
+            world_height=self.world_height,
             time_step=self.time_step,
             fov_angle=self.fov_angle,
             fov_distance=self.fov_distance,
-            drone=drone, # Changed from 'drones'
-            target=target,  # Changed from 'targets'
+            drone=self.drone, # Changed from 'drones'
+            target=self.target,  # Changed from 'targets'
             sensors=self.sensors,
-            origin = (-world_width / 2, -world_height / 2),  # Center the origin,
+            origin = (-self.world_width / 2, -self.world_height / 2),  # Center the origin,
             seed=self.seed_value,
             target_initial_position=self.target_initial_position
 
@@ -120,6 +120,8 @@ class CityEnvironment(gym.Env):
         else:
             self.true_action_low = np.array([-15.0, -15.0, -np.pi], dtype=np.float32)
             self.true_action_high = np.array([15.0, 15.0, np.pi], dtype=np.float32)
+        
+
 
         self.action_space = spaces.Box(
             low=-1.0,

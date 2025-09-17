@@ -11,6 +11,7 @@ add_subdirectory(pybind11)
 add_library(CityEnv STATIC
     src/CityEnv.cpp
     src/AStar.cpp
+    src/MultiAgentCityEnv.cpp
 )
 
 target_compile_features(CityEnv PUBLIC cxx_std_17)
