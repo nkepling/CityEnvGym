@@ -111,7 +111,8 @@ class CityEnvironment(gym.Env):
                 high=high_bounds_full,
                 shape=(self.num_evader_steps, 2),
                 dtype=np.float32
-            )
+            ),
+            "time_elapsed": spaces.Box(low=0.0, high=self.max_time, shape=(), dtype=np.float32)
         })
 
         if hasattr(self.drone_physics,"max_speed"):
@@ -164,6 +165,7 @@ class CityEnvironment(gym.Env):
                     state.target.velocity[1],
                ], dtype=np.float32),
                "future_evader_positions": padded_positions,
+                "time_elapsed": np.array(state.time_elapsed, dtype=np.float32)
            }
 
         reward = state.reward  # Assuming the State object has a reward attribute
@@ -204,6 +206,7 @@ class CityEnvironment(gym.Env):
             "drone": drone_state,
             "target": target_state,
             "future_evader_positions": padded_positions,
+            "time_elapsed": np.array(state.time_elapsed, dtype=np.float32)
         }
 
         return obs, {"time_elapsed": state.time_elapsed}
