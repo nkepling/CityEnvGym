@@ -52,6 +52,7 @@ namespace city_env {
         } else {
             this->randomize_target_on_reset = true;
         }
+
         
         this->target.position.vector = this->initial_target_position; // Set current position
         

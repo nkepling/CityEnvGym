@@ -97,9 +97,9 @@ namespace city_env {
             std::optional<Eigen::Vector2f> target_initial_position = std::nullopt
         );
 
-        State reset(std::optional<unsigned int> seed = std::nullopt);
+        virtual State reset(std::optional<unsigned int> seed = std::nullopt);
         // Step now takes a single action
-        State step(const Action& action);
+        virtual State step(const Action& action);
         State get_state() const;
         float compute_reward() const;   
 
@@ -110,13 +110,8 @@ namespace city_env {
         Eigen::Vector2f mapToWorld(const Eigen::Vector2i& mapCoords) const;
         Eigen::Vector2i worldToMap(const Eigen::Vector2f& worldCoords) const;
         void seed(unsigned int seed);
-
-
-    private:
-        // Member variables updated for a single drone/target
         Drone drone;
         Target target;
-        
         std::vector<std::vector<bool>> obstacle_map;
         float world_width;
         float world_height;
@@ -130,10 +125,10 @@ namespace city_env {
         bool randomize_target_on_reset; 
         Eigen::Vector2f initial_target_position; 
 
-
+               
 
         void update_drone(const Action& action);
-        void update_target();
+        virtual void update_target();
         void check_collision();
         void reset_drone();
         void reset_target();
@@ -142,5 +137,24 @@ namespace city_env {
         std::uniform_real_distribution<float> angle_distribution;
         void setTargetInitialPosition(const Eigen::Vector2f& position);
         void precompute_target_path();
+
+
+
+
+        
+        
+
+    };
+
+
+
+    class MultiAgentCityEnv : public CityEnv{
+        public: 
+           using CityEnv::CityEnv;
+
+            State step(const Action& pursuer_action, const Action& evader_action);
+            void update_target(const Action& action);
+            State reset(std::optional<unsigned int> seed = std::nullopt) override;
+
     };
 } // namespace city_env

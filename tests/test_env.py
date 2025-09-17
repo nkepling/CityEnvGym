@@ -83,6 +83,19 @@ def env_with_big_config():
     env = gym.make("CityEnvGym/CityEnv-v0", **env_params)
     return env
 
+
+@pytest.fixture
+def env_multi_agent():
+    target_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+    drone_physics = {"mass":5,"max_speed":15.0,"max_angular_velocity":np.pi/4.0,}
+
+    target_initial_position = np.array([0.0, 0.0], dtype=np.float32)
+
+
+
+    env = gym.make("CityEnvGym/CityEnv-v0", render_mode="human",num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics, target_initial_position=target_initial_position,marl=True)
+    return env
+
 def test_env_initialization(env):
     """
     Test if the environment is created successfully and has the correct spaces.
@@ -243,7 +256,12 @@ def test_big_config(env_with_big_config):
     done = False
     truncated = False
     while not (done or truncated):
-        obs, rew, done, truncated, info = env_with_big_config.step(action)    
+        obs, rew, done, truncated, info = env_with_big_config.step(action) 
+
+
+
+
+
 
 
 if __name__ == "__main__":
