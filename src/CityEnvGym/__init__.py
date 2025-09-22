@@ -36,6 +36,7 @@ __all__ = [
     "State",
     "CityEnvironment",
     "Sensor",
+    "MultiAgentCityEnvironment",
 ]
 
 

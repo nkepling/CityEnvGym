@@ -54,6 +54,8 @@ def env_multi_agent():
 
 
 
+
+
     env = gym.make("CityEnvGym/MultiAgentCityEnv-v0", render_mode="human",num_evader_steps=50,max_episode_steps=18000, time_step=1/60.0, fov_angle=90.0, fov_distance=100.0,target_physics=target_physics, drone_physics=drone_physics, target_initial_position=target_initial_position)
     return env
 
@@ -64,7 +66,12 @@ def test_multi_agent(env_multi_agent):
 
     pursuer_action = np.array([0.0, -20.0, 0.0], dtype=np.float32)
     evader_action = np.array([0.0, 20.0, 0.0], dtype=np.float32)
-    joint_action = (pursuer_action, evader_action)
+
+
+    joint_action = {
+        "drone": pursuer_action, 
+        "target": evader_action
+    }
 
     done = False
     truncated = False   
@@ -87,9 +94,11 @@ def test_multi_agent(env_multi_agent):
 # def test_render(env_multi_agent):
 #     env = env_multi_agent
     
-#     pursuer_action = np.array([0.0, -20.0, 0.0], dtype=np.float32)
-#     evader_action = np.array([0.0, 20.0, 0.0], dtype=np.float32)
-#     joint_action = (pursuer_action, evader_action)
+#     pursuer_action = np.array([0.0, -1.0, 0.0], dtype=np.float32)
+#     evader_action = np.array([0.0, 0.7, 0.0], dtype=np.float32)
+
+
+#     joint_action = {"drone": pursuer_action, "target": evader_action}
 
 #     done = False
 #     truncated = False   
