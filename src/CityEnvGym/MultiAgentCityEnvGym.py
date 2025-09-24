@@ -71,6 +71,7 @@ class MultiAgentCityEnvironment(CityEnvGym.CityEnvironment):
         drone_action = joint_action["drone"]
         target_action = joint_action["target"]
 
+
         true_action_drone = self.true_action_low + (drone_action + 1.0) * 0.5 * (self.true_action_high - self.true_action_low)
         # true_action_target = self.target.physics.max_speed * target_action
         true_action_target = self.true_action_low + (target_action + 1.0) * 0.5 * (self.true_action_high - self.true_action_low)

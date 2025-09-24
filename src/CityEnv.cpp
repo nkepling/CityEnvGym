@@ -145,6 +145,8 @@ namespace city_env {
         return state;
     }
 
+
+
     float CityEnv::compute_reward() const {
         //pursuit reward 
         Eigen::Vector2f vector_to_target = target.position.vector - drone.position.vector;

@@ -92,140 +92,207 @@ PYBIND11_MODULE(_CityEnvGym, m) {
     // 2. Bind the Main CityEnv Class
     //================================================
 
-    py::class_<city_env::CityEnv>(m, "CityEnv")
-        // UPDATED: The constructor now takes a single drone and target
-        .def(py::init<
-                const std::vector<std::vector<bool>>&,      // 1. obstacle_map
-                float,                                       // 2. world_width
-                float,                                       // 3. world_height
-                float,                                       // 4. time_step
-                float,                                       // 5. fov_angle
-                float,                                       // 6. fov_distance
-                city_env::Drone,                             // 7. drone
-                city_env::Target,                            // 8. target
-                float,                                       // 9. resolution
-                const Eigen::Vector2f&,                      // 10. origin
-                const std::vector<city_env::Sensor>&,         // 11. sensors (Use city_env::Sensor)
-                std::optional<unsigned int>,               // 12. seed
-                std::optional<Eigen::Vector2f>      
+    // py::class_<city_env::CityEnv>(m, "CityEnv")
+    //     // UPDATED: The constructor now takes a single drone and target
+    //     .def(py::init<
+    //             const std::vector<std::vector<bool>>&,      // 1. obstacle_map
+    //             float,                                       // 2. world_width
+    //             float,                                       // 3. world_height
+    //             float,                                       // 4. time_step
+    //             float,                                       // 5. fov_angle
+    //             float,                                       // 6. fov_distance
+    //             city_env::Drone,                             // 7. drone
+    //             city_env::Target,                            // 8. target
+    //             float,                                       // 9. resolution
+    //             const Eigen::Vector2f&,                      // 10. origin
+    //             const std::vector<city_env::Sensor>&,         // 11. sensors (Use city_env::Sensor)
+    //             std::optional<unsigned int>,               // 12. seed
+    //             std::optional<Eigen::Vector2f>      
 
-             >(),
-             py::arg("obstacle_map"),       // 1
-             py::arg("world_width"),        // 2
-             py::arg("world_height"),       // 3
-             py::arg("time_step"),          // 4
-             py::arg("fov_angle"),          // 5
-             py::arg("fov_distance"),       // 6
-             py::arg("drone"),              // 7
-             py::arg("target"),             // 8
-             py::arg("resolution") = 1.0f,  // 9 (with default)
-             py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
-             py::arg("sensors") = std::vector<city_env::Sensor>(), // 11 (with default)
-             py::arg("seed") = py::none(),                  
-             py::arg("target_initial_position") = py::none() 
+    //          >(),
+    //          py::arg("obstacle_map"),       // 1
+    //          py::arg("world_width"),        // 2
+    //          py::arg("world_height"),       // 3
+    //          py::arg("time_step"),          // 4
+    //          py::arg("fov_angle"),          // 5
+    //          py::arg("fov_distance"),       // 6
+    //          py::arg("drone"),              // 7
+    //          py::arg("target"),             // 8
+    //          py::arg("resolution") = 1.0f,  // 9 (with default)
+    //          py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
+    //          py::arg("sensors") = std::vector<city_env::Sensor>(), // 11 (with default)
+    //          py::arg("seed") = py::none(),                  
+    //          py::arg("target_initial_position") = py::none() 
 
-        )
-        .def("reset", [](city_env::CityEnv &self, std::optional<unsigned int> seed) {
-         // This lambda calls the C++ reset method, passing the optional seed.
-         // pybind11 automatically converts Python's None to std::nullopt.
-         return self.reset(seed);
-        },
-        py::arg("seed") = py::none(), // Creates a keyword argument 'seed' with a default value of None
-        "Resets the environment. An optional seed can be provided for reproducibility.")
+    //     )
+    //     .def("reset", [](city_env::CityEnv &self, std::optional<unsigned int> seed) {
+    //      // This lambda calls the C++ reset method, passing the optional seed.
+    //      // pybind11 automatically converts Python's None to std::nullopt.
+    //      return self.reset(seed);
+    //     },
+    //     py::arg("seed") = py::none(), // Creates a keyword argument 'seed' with a default value of None
+    //     "Resets the environment. An optional seed can be provided for reproducibility.")
 
-        // UPDATED: The step function now takes a single action
-        .def("step", &city_env::CityEnv::step,
-             py::arg("action"),
-             "Advances the simulation by one time step with a given action and returns the new state.")
+    //     // UPDATED: The step function now takes a single action
+    //     .def("step", &city_env::CityEnv::step,
+    //          py::arg("action"),
+    //          "Advances the simulation by one time step with a given action and returns the new state.")
 
-        .def("get_state", &city_env::CityEnv::get_state,
-             "Returns the current state of the environment without advancing the simulation.")
+    //     .def("get_state", &city_env::CityEnv::get_state,
+    //          "Returns the current state of the environment without advancing the simulation.")
              
-        // UPDATED: checkFov no longer takes arguments and uses internal state
-        .def("check_fov", &city_env::CityEnv::checkFov,
-            "Checks if the target is within the drone's field of view.")
-        .def("map_to_world", &city_env::CityEnv::mapToWorld,
-             py::arg("mapCoords"),
-             "Converts map coordinates to world coordinates.")
-        .def("world_to_map", &city_env::CityEnv::worldToMap,
-             py::arg("worldCoords"),
-             "Converts world coordinates to map coordinates.");
+    //     // UPDATED: checkFov no longer takes arguments and uses internal state
+    //     .def("check_fov", &city_env::CityEnv::checkFov,
+    //         "Checks if the target is within the drone's field of view.")
+    //     .def("map_to_world", &city_env::CityEnv::mapToWorld,
+    //          py::arg("mapCoords"),
+    //          "Converts map coordinates to world coordinates.")
+    //     .def("world_to_map", &city_env::CityEnv::worldToMap,
+    //          py::arg("worldCoords"),
+    //          "Converts world coordinates to map coordinates.")
+    //     .def("update_target", &city_env::CityEnv::update_target,
+    //         "Updates target positon to go to random location");
+
+
+    //     // 
+
+
+    // py::class_<city_env::MultiAgentCityEnv, city_env::CityEnv>(m, "MultiAgentCityEnv")
+    //     // UPDATED: The constructor now takes a single drone and target
+    //     .def(py::init<
+    //             const std::vector<std::vector<bool>>&,      // 1. obstacle_map
+    //             float,                                       // 2. world_width
+    //             float,                                       // 3. world_height
+    //             float,                                       // 4. time_step
+    //             float,                                       // 5. fov_angle
+    //             float,                                       // 6. fov_distance
+    //             city_env::Drone,                             // 7. drone
+    //             city_env::Target,                            // 8. target
+    //             float,                                       // 9. resolution
+    //             const Eigen::Vector2f&,                      // 10. origin
+    //             const std::vector<city_env::Sensor>&,         // 11. sensors (Use city_env::Sensor)
+    //             std::optional<unsigned int>,               // 12. seed
+    //             std::optional<Eigen::Vector2f>      
+
+    //          >(),
+    //          py::arg("obstacle_map"),       // 1
+    //          py::arg("world_width"),        // 2
+    //          py::arg("world_height"),       // 3
+    //          py::arg("time_step"),          // 4
+    //          py::arg("fov_angle"),          // 5
+    //          py::arg("fov_distance"),       // 6
+    //          py::arg("drone"),              // 7
+    //          py::arg("target"),             // 8
+    //          py::arg("resolution") = 1.0f,  // 9 (with default)
+    //          py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
+    //          py::arg("sensors") = std::vector<city_env::Sensor>(), // 11 (with default)
+    //          py::arg("seed") = py::none(),                  
+    //          py::arg("target_initial_position") = py::none() 
+
+    //     )
+    //     .def("reset", [](city_env::MultiAgentCityEnv &self, std::optional<unsigned int> seed) {
+    //      // This lambda calls the C++ reset method, passing the optional seed.
+    //      // pybind11 automatically converts Python's None to std::nullopt.
+    //      return self.reset(seed);
+    //     },
+    //     py::arg("seed") = py::none(), // Creates a keyword argument 'seed' with a default value of None
+    //     "Resets the environment. An optional seed can be provided for reproducibility.")
+
+    //     // UPDATED: The step function now takes a single action
+    //     .def("step", &city_env::MultiAgentCityEnv::step,
+    //          py::arg("pusuer_action"),
+    //          py::arg("evader_action")
+    //          )
+
+    //     .def("get_state", &city_env::MultiAgentCityEnv::get_state,
+    //          "Returns the current state of the environment without advancing the simulation.")
+             
+    //     // UPDATED: checkFov no longer takes arguments and uses internal state
+    //     .def("check_fov", &city_env::MultiAgentCityEnv::checkFov,
+    //         "Checks if the target is within the drone's field of view.")
+    //     .def("map_to_world", &city_env::MultiAgentCityEnv::mapToWorld,
+    //          py::arg("mapCoords"),
+    //          "Converts map coordinates to world coordinates.")
+    //     .def("world_to_map", &city_env::MultiAgentCityEnv::worldToMap,
+    //          py::arg("worldCoords"),
+    //          "Converts world coordinates to map coordinates.");
 
 
 
-        // 
+    //     m.def("find_path", &AStar::findPath,
+    //         py::arg("start_node"),
+    //         py::arg("goal_node"),
+    //         py::arg("obstacle_map"),
+    //         py::arg("allow_diagonal")
+    //     );
 
 
-    py::class_<city_env::MultiAgentCityEnv>(m, "MultiAgentCityEnv")
-        // UPDATED: The constructor now takes a single drone and target
+py::class_<city_env::CityEnv> city_env(m, "CityEnv");
+
+    city_env.def(py::init<
+            const std::vector<std::vector<bool>>&, float, float, float, float, float,
+            city_env::Drone, city_env::Target, float, const Eigen::Vector2f&,
+            const std::vector<city_env::Sensor>&, std::optional<unsigned int>,
+            std::optional<Eigen::Vector2f>
+        >(),
+        py::arg("obstacle_map"), py::arg("world_width"), py::arg("world_height"),
+        py::arg("time_step"), py::arg("fov_angle"), py::arg("fov_distance"),
+        py::arg("drone"), py::arg("target"), py::arg("resolution") = 1.0f,
+        py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f),
+        py::arg("sensors") = std::vector<city_env::Sensor>(),
+        py::arg("seed") = py::none(),
+        py::arg("target_initial_position") = py::none()
+    )
+    .def("reset", &city_env::CityEnv::reset, py::arg("seed") = py::none())
+    .def("step", static_cast<city_env::State (city_env::CityEnv::*)(const city_env::Action&)>(&city_env::CityEnv::step), py::arg("action"))
+    .def("get_state", &city_env::CityEnv::get_state)
+    .def("check_fov", &city_env::CityEnv::checkFov)
+    .def("map_to_world", &city_env::CityEnv::mapToWorld)
+    .def("world_to_map", &city_env::CityEnv::worldToMap)
+    .def("update_target", &city_env::CityEnv::update_target);
+
+    // ===================================================================
+    // 3. Bind the DERIVED Class (MultiAgentCityEnv)
+    // ===================================================================
+    // The second template argument, `city_env`, tells pybind11 that this class inherits from CityEnv.
+    py::class_<city_env::MultiAgentCityEnv, city_env::CityEnv>(m, "MultiAgentCityEnv")
+        // This automatically exposes the constructor from the base class (CityEnv).
+        // You don't need to copy and paste the whole definition.
         .def(py::init<
-                const std::vector<std::vector<bool>>&,      // 1. obstacle_map
-                float,                                       // 2. world_width
-                float,                                       // 3. world_height
-                float,                                       // 4. time_step
-                float,                                       // 5. fov_angle
-                float,                                       // 6. fov_distance
-                city_env::Drone,                             // 7. drone
-                city_env::Target,                            // 8. target
-                float,                                       // 9. resolution
-                const Eigen::Vector2f&,                      // 10. origin
-                const std::vector<city_env::Sensor>&,         // 11. sensors (Use city_env::Sensor)
-                std::optional<unsigned int>,               // 12. seed
-                std::optional<Eigen::Vector2f>      
-
-             >(),
-             py::arg("obstacle_map"),       // 1
-             py::arg("world_width"),        // 2
-             py::arg("world_height"),       // 3
-             py::arg("time_step"),          // 4
-             py::arg("fov_angle"),          // 5
-             py::arg("fov_distance"),       // 6
-             py::arg("drone"),              // 7
-             py::arg("target"),             // 8
-             py::arg("resolution") = 1.0f,  // 9 (with default)
-             py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f), // 10 (with default)
-             py::arg("sensors") = std::vector<city_env::Sensor>(), // 11 (with default)
-             py::arg("seed") = py::none(),                  
-             py::arg("target_initial_position") = py::none() 
-
+            const std::vector<std::vector<bool>>&, float, float, float, float, float,
+            city_env::Drone, city_env::Target, float, const Eigen::Vector2f&,
+            const std::vector<city_env::Sensor>&, std::optional<unsigned int>,
+            std::optional<Eigen::Vector2f>
+        >(),
+        py::arg("obstacle_map"), py::arg("world_width"), py::arg("world_height"),
+        py::arg("time_step"), py::arg("fov_angle"), py::arg("fov_distance"),
+        py::arg("drone"), py::arg("target"), py::arg("resolution") = 1.0f,
+        py::arg("origin") = Eigen::Vector2f(-500.0f, -500.0f),
+        py::arg("sensors") = std::vector<city_env::Sensor>(),
+        py::arg("seed") = py::none(),
+        py::arg("target_initial_position") = py::none()
         )
-        .def("reset", [](city_env::MultiAgentCityEnv &self, std::optional<unsigned int> seed) {
-         // This lambda calls the C++ reset method, passing the optional seed.
-         // pybind11 automatically converts Python's None to std::nullopt.
-         return self.reset(seed);
-        },
-        py::arg("seed") = py::none(), // Creates a keyword argument 'seed' with a default value of None
-        "Resets the environment. An optional seed can be provided for reproducibility.")
-
-        // UPDATED: The step function now takes a single action
+        // Bind the overridden `step` method. Pybind11 handles the overload automatically.
         .def("step", &city_env::MultiAgentCityEnv::step,
              py::arg("pusuer_action"),
              py::arg("evader_action")
-             )
-
-        .def("get_state", &city_env::MultiAgentCityEnv::get_state,
-             "Returns the current state of the environment without advancing the simulation.")
-             
-        // UPDATED: checkFov no longer takes arguments and uses internal state
-        .def("check_fov", &city_env::MultiAgentCityEnv::checkFov,
-            "Checks if the target is within the drone's field of view.")
-        .def("map_to_world", &city_env::MultiAgentCityEnv::mapToWorld,
-             py::arg("mapCoords"),
-             "Converts map coordinates to world coordinates.")
-        .def("world_to_map", &city_env::MultiAgentCityEnv::worldToMap,
-             py::arg("worldCoords"),
-             "Converts world coordinates to map coordinates.");
+        )
+        .def("default_step",&city_env::MultiAgentCityEnv::default_step,
+            py::arg("pursuer_action")
+        )
+        .def("reset", &city_env::MultiAgentCityEnv::reset, py::arg("seed") = py::none());
 
 
 
-        m.def("find_path", &AStar::findPath,
-            py::arg("start_node"),
-            py::arg("goal_node"),
-            py::arg("obstacle_map"),
-            py::arg("allow_diagonal")
-        );
-
-
+    // ===================================================================
+    // 4. Bind Standalone Functions
+    // ===================================================================
+    m.def("find_path", &AStar::findPath,
+        py::arg("start_node"),
+        py::arg("goal_node"),
+        py::arg("obstacle_map"),
+        py::arg("allow_diagonal")
+    );
 
 
 }

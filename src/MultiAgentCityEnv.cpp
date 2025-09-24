@@ -11,14 +11,22 @@ namespace city_env {
 
     State MultiAgentCityEnv::step(const Action& pursuer_action, const Action& evader_action) {
         update_drone(pursuer_action);
-        update_target(evader_action); 
+        update_target_with_action(evader_action); 
         check_collision();
         this->time_elapsed += this->time_step;
         return get_state();
 
     }
 
-    void MultiAgentCityEnv::update_target(const Action& action) {
+    State MultiAgentCityEnv::default_step(const Action& pursuer_action) {
+        update_drone(pursuer_action);
+        update_target(); 
+        check_collision();
+        this->time_elapsed += this->time_step;
+        return get_state();
+    }
+
+    void MultiAgentCityEnv::update_target_with_action(const Action& action) {
         const Eigen::Vector2f commanded_linear_velocity = action.head<2>();
         const float commanded_angular_velocity = action[2]; // This is omega
         const auto& physics = target.physics;

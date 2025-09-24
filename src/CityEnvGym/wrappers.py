@@ -112,7 +112,37 @@ class EgoCentricWrapperHistory(ObservationWrapper):
 
     
 
-class SingleAgentObservationWrapper(ActionWrapper):
+# class SingleAgentObservationWrapper(ActionWrapper):
+#     def __init__(self, env,evader_policy):
+#         super().__init__(env)
+
+#         self.action_space = spaces.Box(
+#             low=-1.0,
+#             high=1.0,
+#             shape=(3,), # Shape for a single agent (the drone)
+#             dtype=np.float32
+#         )
+
+#         self.evader_policy = evader_policy
+
+
+#     def action(self, pursuer_action):
+
+#         pursue_action = pursuer_action[:5]
+
+
+#         state = self.unwrapped._get_obs()
+
+#         evader_action = self.evader_policy(state)
+
+
+    
+#         joint_action = {"drone": pursue_action, "target": evader_action}
+
+#         return joint_action
+    
+
+class SingleAgentObservationWrapper(Wrapper):
     def __init__(self, env,evader_policy):
         super().__init__(env)
 
@@ -126,19 +156,106 @@ class SingleAgentObservationWrapper(ActionWrapper):
         self.evader_policy = evader_policy
 
 
-    def action(self, pursuer_action):
-
-        pursue_action = pursuer_action[:5]
+    def step(self, action):
 
 
-        state = self.unwrapped._get_obs()
+        pursue_action = action[:5]
 
-        evader_action = self.evader_policy(state)
+        target_action = self.evader_policy(self.unwrapped._get_obs())
+
+        joint_action = {"drone": pursue_action, "target": target_action}
+
+        drone_action = joint_action["drone"]
+        target_action = joint_action["target"]
+
+        true_action_drone = self.unwrapped.true_action_low + (drone_action + 1.0) * 0.5 * (self.unwrapped.true_action_high - self.unwrapped.true_action_low)
+        # true_action_target = self.target.physics.max_speed * target_action
+        true_action_target = self.unwrapped.true_action_low + (target_action + 1.0) * 0.5 * (self.unwrapped.true_action_high - self.unwrapped.true_action_low)
+
+
+        if self.evader_policy.evader_mode:
+            state = self.unwrapped.city_env.step(true_action_drone, true_action_target)
+        else:
+            state = self.unwrapped.city_env.default_step(true_action_drone)
         
-        joint_action = {"drone": pursue_action, "target": evader_action}
+        drone_pos = state.drone.position
+        drone_vel = state.drone.velocity
+        drone_state = np.array([
+            drone_pos.vector[0], 
+            drone_pos.vector[1],
+            drone_pos.yaw, 
+            drone_vel[0], 
+            drone_vel[1], 
+        ], dtype=np.float32)
 
-        return joint_action
+        target_pos = state.target.position
+        target_vel = state.target.velocity
+        target_state = np.array([
+            target_pos.vector[0],
+            target_pos.vector[1],
+            target_pos.yaw,
+            target_vel[0],
+            target_vel[1],
+        ], dtype=np.float32)
+
+        
+        self.unwrapped.evader_history.append(target_state)
+
+        future_padded_positions = np.zeros((self.unwrapped.num_evader_steps, 2), dtype=np.float32)
+        future_pos_list = state.future_target_positions
+        if future_pos_list:
+            num_received_points = len(future_pos_list)
+            received_positions = np.array(future_pos_list, dtype=np.float32)
+            future_padded_positions[:num_received_points, :] = received_positions
+
+        past_padded_positions = np.zeros((self.unwrapped.num_evader_steps, 5), dtype=np.float32)
+        history_array = np.array(self.unwrapped.evader_history)
+        past_padded_positions[-len(history_array):, :] = history_array
+
+
+        obs = {
+            "drone": drone_state,
+            "target": target_state,
+            "future_evader_positions": future_padded_positions,
+            "past_evader_positions": past_padded_positions,
+            "time_elapsed": np.array(state.time_elapsed, dtype=np.float32),
+        }
+
+        reward = state.reward
+        done = state.time_elapsed >= self.unwrapped.max_time
+        truncated = False  
+        info = {"time_elapsed": state.time_elapsed}
+
+        for key, value in obs.items():
+            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
+                info[f"{key}_invalid"] = True
+                print(f"Warning: Invalid value detected in observation key '{key}'")
+
+
+        return obs, reward, done, truncated, info
+
     
+
+
+class ExtraInfoWrapper(ObservationWrapper):
+    def __init__(self, env, num_evader_steps=5):
+        super().__init__(env)
+
+
+    def observation(self, observation: Any) -> Any:
+
+        new_obs = super().observation(observation)
+
+
+        relative_pos = new_obs["target"][:2] - new_obs["drone"][:2]
+        distance = np.linalg.norm(relative_pos)
+        new_obs["distance_to_target"] = np.array([distance], dtype=np.float32)
+
+        return new_obs
+    
+
+
+
 
 
     

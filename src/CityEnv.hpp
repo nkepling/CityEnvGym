@@ -125,8 +125,8 @@ namespace city_env {
         bool randomize_target_on_reset; 
         Eigen::Vector2f initial_target_position; 
 
-               
 
+            
         void update_drone(const Action& action);
         virtual void update_target();
         void check_collision();
@@ -155,7 +155,8 @@ namespace city_env {
            using CityEnv::CityEnv;
 
             State step(const Action& pursuer_action, const Action& evader_action);
-            void update_target(const Action& action);
+            State default_step(const Action& pursuer_action);
+            void update_target_with_action(const Action& action);
             State reset(std::optional<unsigned int> seed = std::nullopt) override;
 
     };
