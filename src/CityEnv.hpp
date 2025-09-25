@@ -137,6 +137,7 @@ namespace city_env {
         std::uniform_real_distribution<float> angle_distribution;
         void setTargetInitialPosition(const Eigen::Vector2f& position);
         void precompute_target_path();
+        void clear_target_path();
 
 
 

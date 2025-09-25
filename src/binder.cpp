@@ -249,7 +249,9 @@ py::class_<city_env::CityEnv> city_env(m, "CityEnv");
     .def("check_fov", &city_env::CityEnv::checkFov)
     .def("map_to_world", &city_env::CityEnv::mapToWorld)
     .def("world_to_map", &city_env::CityEnv::worldToMap)
-    .def("update_target", &city_env::CityEnv::update_target);
+    .def("update_target", &city_env::CityEnv::update_target)
+    .def("clear_target_path", &city_env::CityEnv::clear_target_path);
+
 
     // ===================================================================
     // 3. Bind the DERIVED Class (MultiAgentCityEnv)

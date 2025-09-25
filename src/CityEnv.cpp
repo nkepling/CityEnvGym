@@ -483,4 +483,10 @@ namespace city_env {
     void CityEnv::setTargetInitialPosition(const Eigen::Vector2f& position) {
         this->initial_target_position = position;
     }
+
+    void CityEnv::clear_target_path(){
+        target.path.clear();
+        target.current_path_index = 0;
+    }
+
 } // namespace city_env

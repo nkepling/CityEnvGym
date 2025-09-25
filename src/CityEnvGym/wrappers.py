@@ -175,6 +175,8 @@ class SingleAgentObservationWrapper(Wrapper):
 
         if self.evader_policy.evader_mode:
             state = self.unwrapped.city_env.step(true_action_drone, true_action_target)
+            self.unwrapped.city_env.clear_target_path()
+
         else:
             state = self.unwrapped.city_env.default_step(true_action_drone)
         
